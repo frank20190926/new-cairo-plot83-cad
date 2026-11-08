@@ -1,0 +1,58 @@
+{
+  "Plot83_NewCairo_B_G_3_R_Master.dxf": {
+    "bytes": 314390,
+    "sha256": "f0d189e6c5cf4c05a7977b756c6c1955618ab44d08c2cee313ade84e7c8d3f6d"
+  },
+  "Plot83_NewCairo_Engineering_Set.pdf": {
+    "bytes": 185182,
+    "sha256": "78c23a1d4aea595f8aa146a202454f692d469767244051a6ee75ea42c02c25c4"
+  },
+  "plan_basement_sweptpath.svg": {
+    "bytes": 164072,
+    "sha256": "f517fdd0df46f4ef633d4030de7ac7ea7fce29afe1c3e98d8b2a3992c206deb0"
+  },
+  "plan_ground.svg": {
+    "bytes": 142369,
+    "sha256": "6fe24375c476c739ba4e75f7585dfeaea17cc1be15440bcc88974abf52d96556"
+  },
+  "plan_typical.svg": {
+    "bytes": 143983,
+    "sha256": "33a94e2d013d6ee570ee845377670bdb914988f83906e89e1cc9af0af962036a"
+  },
+  "plan_roof.svg": {
+    "bytes": 106769,
+    "sha256": "fe930f80f7a56f776675ae5c6c9b59cb03eac41f80628624591fb55d6df4da0f"
+  },
+  "section_aa.svg": {
+    "bytes": 117633,
+    "sha256": "8280b72a2ebdb442dae37474c182b17841f238c58c33143aef05829a7448545d"
+  },
+  "passive_sun_wind_diagram.svg": {
+    "bytes": 72980,
+    "sha256": "bd27fad6209ef81eaa20f643215ee6fd5fbc248b6724bd58b59e13963b6ec34e"
+  },
+  "core_options_comparison.svg": {
+    "bytes": 103856,
+    "sha256": "f8576c863ba75cdd0bd1fcecfa811b0947893b9d5d6ddbe9e10f6e444972142b"
+  },
+  "area_and_constraints.svg": {
+    "bytes": 141264,
+    "sha256": "2faa4678653391956536bceae4ca7ce1211141c02f0ab04a9201e901bcc29af3"
+  },
+  "plan_roof_section.svg": {
+    "bytes": 191841,
+    "sha256": "15de1232c2f02cffb253a8bfcf21936c7b15856b74ca10b47332937514dfe1fa"
+  },
+  "engineering_validation.json": {
+    "bytes": 12797,
+    "sha256": "376f47b07fbb38da050bdb7f0dc712e7a7e44be216d972ec59388e6676f271c6"
+  },
+  "requirement_matrix.md": {
+    "bytes": 2414,
+    "sha256": "822b6b2bddaa30ade78c237f23ab2b0fb5f770c1f1a6dba26e3d48220f07860d"
+  },
+  "parameters.json": {
+    "bytes": 855,
+    "sha256": "7fa3589b9d2d4b9361714052b314476584179c74d9ea4f00690e2fb4c84ca9f9"
+  }
+}
