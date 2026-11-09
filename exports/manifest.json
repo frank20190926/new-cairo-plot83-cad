@@ -4,12 +4,12 @@
     "sha256": "251307fb892ce276ff90003db1d848df7ef052e82b4b5c6fd305dc1ab98ebe2c"
   },
   "board1-claude.html": {
-    "bytes": 733380,
-    "sha256": "c7fc883b0b1db3d5c52c1882f1fd6817859a5c8aea4b8de6f53375fd1061c366"
+    "bytes": 120864,
+    "sha256": "5e724c5be29a11897d2c04d94b003d28ec59d9733d0d36608698b14ba88d7bb6"
   },
   "board1-claude.jpg": {
-    "bytes": 1253577,
-    "sha256": "830fb7c260f5be470d310fa250035bcbb264b81b55474963ab760a357d341fc3"
+    "bytes": 2637371,
+    "sha256": "3b4c998bfed00d2af71ccf509eff0a2d3520f22159d0484a733a39ce87e21497"
   },
   "board1-codex.html": {
     "bytes": 710668,
@@ -20,12 +20,12 @@
     "sha256": "327f4635829a60b1d3df0c36e6873657fd83db233cbacc911a866de88f3e5eda"
   },
   "board2-claude.html": {
-    "bytes": 439198,
-    "sha256": "c000930c6f5c7865937db98ec622f6b5f6642d41b3b52053ce15a125b3f10bd6"
+    "bytes": 25824,
+    "sha256": "49ddef7646938aa5d08ed228bf6b2690c0f0ad4873a696f09508633576212805"
   },
   "board2-claude.jpg": {
-    "bytes": 1180068,
-    "sha256": "bc3506d815f4545b471cf536ee2f3dd28ecde09f6c7624e380d526871bbda425"
+    "bytes": 1819901,
+    "sha256": "5da86ec679e09379c0603f1dc26578176edd0c8f756ea4d76ebd40446c1f0e36"
   },
   "board2-codex.html": {
     "bytes": 334198,
@@ -44,8 +44,8 @@
     "sha256": "5cab110186c8eb329c8aaff2a30e8aa02098e6865e7795b519744aa659bdd964"
   },
   "build_claude_boards.py": {
-    "bytes": 25194,
-    "sha256": "7b8440ba1628b215c289ebf5fcae6d3f359c7d38c7d452dfd56aa3de5f273639"
+    "bytes": 64048,
+    "sha256": "241d432127472de1a48e39f1fa81edfe2796c8497bc5b241f399da6a87048fc2"
   },
   "exports/Plot83_NewCairo_B_G_3_R_Master.dxf": {
     "bytes": 322362,
@@ -160,12 +160,12 @@
     "sha256": "90966b30256b44b750c7b55fc58fc08dc93c2c017d23a6a1876aabfcb4a04a2a"
   },
   "final_boards/01-Plot83-NewCairo-All-4-Floor-Plans-A01.jpg": {
-    "bytes": 1253577,
-    "sha256": "830fb7c260f5be470d310fa250035bcbb264b81b55474963ab760a357d341fc3"
+    "bytes": 2637371,
+    "sha256": "3b4c998bfed00d2af71ccf509eff0a2d3520f22159d0484a733a39ce87e21497"
   },
   "final_boards/02-Passive-Section-Core-Study-ZeroWaste-A02.jpg": {
-    "bytes": 1180068,
-    "sha256": "bc3506d815f4545b471cf536ee2f3dd28ecde09f6c7624e380d526871bbda425"
+    "bytes": 1819901,
+    "sha256": "5da86ec679e09379c0603f1dc26578176edd0c8f756ea4d76ebd40446c1f0e36"
   },
   "final_boards/03-Parametric-CAD-Floor-Plans-Set.jpg": {
     "bytes": 1446811,
@@ -176,28 +176,28 @@
     "sha256": "108c4395fd621059a38219118c6bd0723af958d17c6b68c53bee3c751ac8a58f"
   },
   "final_boards/board1-claude.jpg": {
-    "bytes": 1253577,
-    "sha256": "830fb7c260f5be470d310fa250035bcbb264b81b55474963ab760a357d341fc3"
+    "bytes": 2637371,
+    "sha256": "3b4c998bfed00d2af71ccf509eff0a2d3520f22159d0484a733a39ce87e21497"
   },
   "final_boards/board1-codex.jpg": {
     "bytes": 1446811,
     "sha256": "327f4635829a60b1d3df0c36e6873657fd83db233cbacc911a866de88f3e5eda"
   },
   "final_boards/board2-claude.jpg": {
-    "bytes": 1180068,
-    "sha256": "bc3506d815f4545b471cf536ee2f3dd28ecde09f6c7624e380d526871bbda425"
+    "bytes": 1819901,
+    "sha256": "5da86ec679e09379c0603f1dc26578176edd0c8f756ea4d76ebd40446c1f0e36"
   },
   "final_boards/board2-codex.jpg": {
     "bytes": 1174121,
     "sha256": "108c4395fd621059a38219118c6bd0723af958d17c6b68c53bee3c751ac8a58f"
   },
   "index.html": {
-    "bytes": 1160170,
-    "sha256": "7c54796a9bea3a27f3ae0bd332529bcd31c7705a219e469b5de165d73f92947b"
+    "bytes": 142095,
+    "sha256": "4c1738f923911c1fdd5688d01a801b3a42f589e2043a1663f8e13ba130d7afa5"
   },
   "render_delivery.py": {
-    "bytes": 8050,
-    "sha256": "5871dd2a16c3f163e9e80313c36431bc9241e7e36fe7ee6937efc3b96616f30b"
+    "bytes": 8082,
+    "sha256": "5c56006f8cb8df9bb390b3ca9d011ba1da67aa547ff28a10510440e3c49b494d"
   },
   "verify_delivery.py": {
     "bytes": 4216,

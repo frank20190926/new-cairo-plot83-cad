@@ -26,7 +26,7 @@ BOARDS = {
 }
 AUDIT = r'''<script>
 addEventListener('load',()=>{
-  const board=document.querySelector('.board') || document.querySelector('main');
+  const board=document.querySelector('.board') || document.querySelector('.g') || document.querySelector('body');
   const errors=[];
   const bounds=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}};
   for(const e of document.querySelectorAll('main,header,footer,section,.panel,.card,.notes,table')){
