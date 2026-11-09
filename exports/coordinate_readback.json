@@ -1,0 +1,49 @@
+{
+  "method": "Independent DXF entity coordinate read-back; no generator imports",
+  "north_up_portrait_plot_count": 5,
+  "plot_m": [
+    17,
+    25
+  ],
+  "ground_bounds_m": [
+    3.5,
+    6,
+    16.5,
+    23
+  ],
+  "typical_bounds_m": [
+    3,
+    6,
+    16.75,
+    23.618181818181817
+  ],
+  "court_m": [
+    2.5,
+    3.4
+  ],
+  "ground_area_m2": 212.5,
+  "typical_area_m2": 233.75,
+  "roof_area_m2": 106.25,
+  "pool_outer_m": [
+    6,
+    3
+  ],
+  "buffer_and_south_clearance_m": [
+    1.5,
+    1.5
+  ],
+  "ramp_width_m": 3,
+  "swept_arc_radii_m": [
+    3.2,
+    5.8
+  ],
+  "numbered_car_bays": 6,
+  "diagonal_P4_to_P2_m": 30.23243291566195,
+  "pdf_vector_pages": 9,
+  "svg_png_pairs": 10,
+  "root_boards": 4,
+  "matching_final_boards": 8,
+  "dxf_audit_errors": 0,
+  "status": "PASS",
+  "vehicle_routes_certified": false
+}

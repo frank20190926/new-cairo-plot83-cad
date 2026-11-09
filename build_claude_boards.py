@@ -1,958 +1,160 @@
 #!/usr/bin/env python3
-"""Contest #2800443 — Plot 83 New Cairo (17 x 25 m).
-Claude generator: board1-claude.html, board2-claude.html, index.html.
-Single source of geometry; every area printed on the sheets is computed here.
-Plot frame: x = East-West (0 = west boundary, 25 = east spine), y = North-South (0 = south, 17 = north road).
+"""Plot 83 editorial boards and interactive review page.
+
+Run AFTER build_cad_2800443.py. All drawings are embedded from that generator's
+canonical exports; this file deliberately contains no second floor-plan model.
+North is up: 17 m E-W frontage, 25 m N-S depth. No network assets are required.
 """
+from __future__ import annotations
 import html
-import math
+import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-PW, PH = 25.0, 17.0
-PLOT_AREA = PW * PH                      # 425.00
-DIAG = math.hypot(PW, PH)                # 30.23
-BX0, BX1 = 3.0, 24.25                    # building x extent (3.0 W setback, 21.25 wide)
-INK, VEL = '#1B1F24', '#F6F4EE'
-
-# ---- plan frame (800 x 600 cell, 30 px/m) ----
-S, OX, OY, CW, CH = 30, 30, 64, 800, 600
-
-
-def X(x): return OX + S * x
-def Y(y): return OY + S * (PH - y)
-
-
-KIND = {
-    'living': '#EFE4CC', 'wet': '#CFE3E8', 'service': '#E3DDCF', 'garage': '#E1E2DE',
-    'bed': '#F1DFD6', 'core': '#D8D0BC', 'out': '#DCE7CF', 'work': '#E9E2D2',
-    'roof': '#ECE9DF', 'pool': '#86C8DC', 'void': '#CFE0C0', 'pv': '#2E4A6B',
-}
-
-
-def esc(t): return html.escape(str(t), quote=True)
-
-
-def rect(x0, y0, x1, y1, fill, stroke=INK, sw=1.5, extra=''):
-    return (f'<rect x="{X(x0):.1f}" y="{Y(y1):.1f}" width="{S*(x1-x0):.1f}" height="{S*(y1-y0):.1f}" '
-            f'fill="{fill}" stroke="{stroke}" stroke-width="{sw}" {extra}/>')
-
-
-def line(x0, y0, x1, y1, stroke=INK, sw=1.5, extra=''):
-    return f'<line x1="{X(x0):.1f}" y1="{Y(y0):.1f}" x2="{X(x1):.1f}" y2="{Y(y1):.1f}" stroke="{stroke}" stroke-width="{sw}" {extra}/>'
-
-
-def text(px, py, t, fs=12, fill=INK, weight=600, anchor='middle', rot=0, extra='', family=None):
-    fam = f' font-family="{family}"' if family else ''
-    tr = f' transform="rotate({rot} {px:.1f} {py:.1f})"' if rot else ''
-    return (f'<text x="{px:.1f}" y="{py:.1f}" font-size="{fs}" fill="{fill}" font-weight="{weight}" '
-            f'text-anchor="{anchor}"{tr}{fam} {extra}>{esc(t)}</text>')
-HALO = 'paint-order="stroke" stroke="#F6F4EE" stroke-width="2.6" stroke-linejoin="round"'
-
-
-def label(cx, cy, name, area=None, fs=None, fill=INK, wpx=None):
-    if not name:
-        return ''
-    lines = name.split('|')
-    mx = max(len(l) for l in lines)
-    if fs is None:
-        w = wpx if wpx else 100
-        fs = max(8, min(13, w / (0.58 * mx)))
-    out = []
-    n = len(lines) + (1 if area is not None else 0)
-    y0 = Y(cy) - (n - 1) * fs * 0.6 + fs * 0.35
-    for i, l in enumerate(lines):
-        out.append(text(X(cx), y0 + i * fs * 1.2, l, fs, fill, 700, extra=HALO))
-    if area is not None:
-        out.append(text(X(cx), y0 + len(lines) * fs * 1.2, f'{area:.1f} m²', fs * 0.85, fill, 500, family='Menlo, monospace', extra=HALO))
-    return ''.join(out)
-
-
-AREAS = {}
-_LBL = []
-
-
-def flush():
-    out = ''.join(_LBL)
-    _LBL.clear()
-    return out
-
-
-def room(x0, y0, x1, y1, name, kind, key=None, show_area=True, fs=None, sw=2.6):
-    a = (x1 - x0) * (y1 - y0)
-    if key:
-        AREAS[key] = a
-    _LBL.append(label((x0 + x1) / 2, (y0 + y1) / 2, name, a if show_area else None, fs, wpx=S * (x1 - x0)))
-    return rect(x0, y0, x1, y1, KIND[kind], sw=sw)
-
-
-def box(x0, y0, x1, y1, fill='#FFFFFF', sw=1, op=1.0, stroke='#4B5560', rx=0):
-    return (f'<rect x="{X(x0):.1f}" y="{Y(y1):.1f}" width="{S*(x1-x0):.1f}" height="{S*(y1-y0):.1f}" fill="{fill}" '
-            f'stroke="{stroke}" stroke-width="{sw}" opacity="{op}" rx="{rx}"/>')
-
-
-def circ(cx, cy, r, fill, stroke='#4B5560', sw=1, op=1.0):
-    return f'<circle cx="{X(cx):.1f}" cy="{Y(cy):.1f}" r="{S*r:.1f}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}" opacity="{op}"/>'
-
-
-def win(x0, y0, x1, y1):
-    """Window on an exterior wall: paper gap + glazing line."""
-    return (line(x0, y0, x1, y1, VEL, 8) + line(x0, y0, x1, y1, '#3C8DB8', 3.4) +
-            line(x0, y0, x1, y1, '#FFFFFF', 1.2))
-
-
-def door(hx, hy, dx, dy, nx, ny, w=0.9):
-    ex, ey = X(hx + dx * w), Y(hy + dy * w)
-    fx, fy = X(hx + nx * w), Y(hy + ny * w)
-    px, py = X(hx), Y(hy)
-    cr = (ex - px) * (fy - py) - (ey - py) * (fx - px)
-    sweep = 1 if cr > 0 else 0
-    r = S * w
-    return (f'<line x1="{px:.1f}" y1="{py:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" stroke="{VEL}" stroke-width="7"/>'
-            f'<line x1="{px:.1f}" y1="{py:.1f}" x2="{fx:.1f}" y2="{fy:.1f}" stroke="{INK}" stroke-width="1.6"/>'
-            f'<path d="M {ex:.1f} {ey:.1f} A {r:.1f} {r:.1f} 0 0 {sweep} {fx:.1f} {fy:.1f}" fill="none" stroke="{INK}" stroke-width="0.9"/>')
-
-
-def dimh(x0, x1, ypx, t, fs=11, fill='#7A1F1F'):
-    a, b = X(x0), X(x1)
-    return (f'<line x1="{a:.1f}" y1="{ypx}" x2="{b:.1f}" y2="{ypx}" stroke="{fill}" stroke-width="1"/>'
-            f'<line x1="{a:.1f}" y1="{ypx-4}" x2="{a:.1f}" y2="{ypx+4}" stroke="{fill}" stroke-width="1"/>'
-            f'<line x1="{b:.1f}" y1="{ypx-4}" x2="{b:.1f}" y2="{ypx+4}" stroke="{fill}" stroke-width="1"/>'
-            f'<line x1="{a-3:.1f}" y1="{ypx+3}" x2="{a+3:.1f}" y2="{ypx-3}" stroke="{fill}" stroke-width="1.4"/>'
-            f'<line x1="{b-3:.1f}" y1="{ypx+3}" x2="{b+3:.1f}" y2="{ypx-3}" stroke="{fill}" stroke-width="1.4"/>'
-            + text((a + b) / 2, ypx - 3, t, fs, fill, 700, family='Menlo, monospace'))
-
-
-def dimv(y0, y1, xpx, t, fs=11, fill='#7A1F1F'):
-    a, b = Y(y0), Y(y1)
-    return (f'<line x1="{xpx}" y1="{a:.1f}" x2="{xpx}" y2="{b:.1f}" stroke="{fill}" stroke-width="1"/>'
-            f'<line x1="{xpx-4}" y1="{a:.1f}" x2="{xpx+4}" y2="{a:.1f}" stroke="{fill}" stroke-width="1"/>'
-            f'<line x1="{xpx-4}" y1="{b:.1f}" x2="{xpx+4}" y2="{b:.1f}" stroke="{fill}" stroke-width="1"/>'
-            f'<line x1="{xpx-3}" y1="{a+3:.1f}" x2="{xpx+3}" y2="{a-3:.1f}" stroke="{fill}" stroke-width="1.4"/>'
-            f'<line x1="{xpx-3}" y1="{b+3:.1f}" x2="{xpx+3}" y2="{b-3:.1f}" stroke="{fill}" stroke-width="1.4"/>'
-            + text(xpx - 3, (a + b) / 2, t, fs, fill, 700, rot=-90, family='Menlo, monospace'))
-
-
-# ------------------------------------------------------------------ site layer
-POOL = (12.0, 0.5, 18.0, 3.5)          # 6.0 (E-W) x 3.0 (N-S)
-BUF = (10.5, 0.0, 19.5, 5.0)           # pool + 1.5 m buffer to building walls
-
-
-def defs():
-    return ('<defs>'
-            f'<pattern id="hat" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="{INK}" stroke-width="1" opacity=".35"/></pattern>'
-            '<pattern id="hat2" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#8A6B2F" stroke-width="1.2" opacity=".55"/></pattern>'
-            '<pattern id="wave" width="14" height="8" patternUnits="userSpaceOnUse"><path d="M0 4 Q3.5 0 7 4 T14 4" fill="none" stroke="#FFFFFF" stroke-width="1" opacity=".8"/></pattern>'
-            '<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker>'
-            '</defs>')
-
-
-def site(level, tag):
-    p = []
-    p.append(f'<rect x="0" y="0" width="{CW}" height="{CH}" fill="{VEL}"/>')
-    # road (north), spine (east)
-    p.append(f'<rect x="{OX}" y="30" width="{S*PW}" height="{OY-30}" fill="#CFCCC3"/>')
-    p.append(f'<line x1="{OX}" y1="{OY-17}" x2="{OX+S*PW}" y2="{OY-17}" stroke="#F6F4EE" stroke-width="2" stroke-dasharray="14 9"/>')
-    p.append(f'<rect x="{OX+S*PW}" y="{OY}" width="{CW-OX-S*PW}" height="{S*PH}" fill="#E4DCC8"/>')
-    p.append(text(OX + S * PW + 10, OY + S * PH / 2, '10m E SPINE', 10, '#6B6250', 700, rot=90))
-    p.append(text(OX + 90, 49, '15m NORTH ROAD (main entrance + car ramp)', 10.5, '#4A463C', 700, 'start'))
-    # plot ground
-    gfill = '#E5EBDA' if level != 'B' else '#DCDDD3'
-    p.append(rect(0, 0, PW, PH, gfill, stroke='none', sw=0))
-    # setback strips
-    p.append(rect(0, 0, 3.0, PH, 'url(#hat)', stroke='none', sw=0, extra='opacity=".45"'))
-    p.append(rect(0, 0, PW, 4.0, 'url(#hat)', stroke='none', sw=0, extra='opacity=".28"'))
-    p.append(line(3.0, 0, 3.0, PH, '#9B2C2C', 1.1, 'stroke-dasharray="7 4"'))
-    p.append(line(0, 4.0, PW, 4.0, '#9B2C2C', 1.1, 'stroke-dasharray="7 4"'))
-    # diagonal (30.23 m)
-    p.append(line(0, 0, PW, PH, '#7A1F1F', 1, 'stroke-dasharray="2 5" opacity=".4"'))
-    ang = -math.degrees(math.atan2(PH, PW))
-    p.append(text(X(PW * 0.06 + 0.4), Y(PH * 0.06 + 0.5), f'DIAG {DIAG:.2f}m', 9.5, '#7A1F1F', 700, 'middle', ang, family='Menlo, monospace'))
-    # pool + buffer
-    bx0, by0, bx1, by1 = BUF
-    p.append(rect(bx0, max(by0, 0), bx1, by1, '#C9B98F', stroke='#8A6B2F', sw=1, extra='opacity=".55"'))
-    p.append(rect(bx0, max(by0, 0), bx1, by1, 'url(#hat2)', stroke='none', sw=0))
-    x0, y0, x1, y1 = POOL
-    p.append(rect(x0 - 0.12, y0 - 0.12, x1 + 0.12, y1 + 0.12, '#FFFFFF', stroke=INK, sw=2))
-    p.append(rect(x0, y0, x1, y1, KIND['pool'], stroke='#1F6E8C', sw=1.5))
-    p.append(rect(x0, y0, x1, y1, 'url(#wave)', stroke='none', sw=0))
-    p.append(text(X((x0 + x1) / 2), Y((y0 + y1) / 2) + 4, 'POOL 3.0 × 6.0 m', 12, '#0D3C52', 800))
-    p.append(f'<g>{dimh(x0, x1, int(Y(y1)-8), "6.00m", 9.5)}</g>')
-    p.append(text(X(bx0 + 0.15), Y(4.62), '1.50m insulated backfill buffer', 8.5, '#5E4A1A', 700, 'start'))
-    p.append(dimv(3.5, 5.0, int(X(19.0)), '1.50', 9))
-    return ''.join(p)
-
-
-def trees():
-    out = []
-    for (x, y, r) in [(21.2, 1.9, .8), (23.4, 3.8, .6), (22.9, 0.8, .45), (8.9, 0.9, .5)]:
-        out.append(circ(x, y, r, '#8DB872', '#3E6B2F', 1.2, .95) + circ(x, y, r * .35, '#5E9A4B', 'none', 0, .9))
-    return ''.join(out)
-
-
-def frame(level_code, title, sub, note=''):
-    p = []
-    p.append(f'<rect x="0" y="0" width="{CW}" height="30" fill="{INK}"/>')
-    p.append(text(12, 21, title, 14.5, '#F6F4EE', 800, 'start'))
-    p.append(text(CW - 44, 21, sub, 10.5, '#D9C58B', 600, 'end', family='Menlo, monospace'))
-    # north arrow
-    p.append(f'<g transform="translate({CW-22},15)"><circle r="11" fill="#F6F4EE"/><path d="M0 -9 L5 7 L0 3 L-5 7 z" fill="{INK}"/><text y="-11.5" x="0" font-size="8" fill="#F6F4EE" text-anchor="middle" font-weight="800">N</text></g>')
-    # outer dims
-    ypx = OY + S * PH + 10
-    p.append(dimh(0, PW, ypx + 13, '25.00m (E–W)', 11))
-    p.append(dimv(0, PH, 21, '17.00m (N–S)', 11))
-    p.append(dimh(0, 3.0, 58, '3.0m W', 9.5))
-    p.append(dimh(BX0, BX1, 58, '21.25m', 10.5))
-    p.append(dimv(0, 4.0, int(X(24.62)), '4.0m S', 8.5))
-    return ''.join(p)
-
-
-def stair(x0, y0, x1, y1, n, vertical=True):
-    out = [box(x0, y0, x1, y1, '#F7F2E4', 1.2)]
-    for i in range(1, n):
-        if vertical:
-            yy = y0 + (y1 - y0) * i / n
-            out.append(line(x0, yy, x1, yy, '#4B5560', 0.8))
-        else:
-            xx = x0 + (x1 - x0) * i / n
-            out.append(line(xx, y0, xx, y1, '#4B5560', 0.8))
-    return ''.join(out)
-
-
-def core_plan(level):
-    """Core NW zone x3..8, y12.5..17 (option B drawn: lift adjacent to stair)."""
-    out = [rect(3, 12.5, 8, 17, KIND['core'], sw=2.6)]
-    # dogleg stair (2.7 wide) with centre well
-    out.append(stair(3.15, 12.65, 4.45, 16.0, 9))
-    out.append(stair(4.55, 12.65, 5.7, 16.0, 9))
-    out.append(box(3.15, 16.0, 5.7, 16.85, '#F7F2E4', 1.2))
-    out.append(line(4.5, 12.65, 4.5, 16.0, INK, 1.2))
-    out.append(f'<path d="M {X(3.8):.1f} {Y(12.9):.1f} L {X(3.8):.1f} {Y(15.4):.1f} " stroke="#B03A2E" stroke-width="1.4" marker-end="url(#arr)" fill="none" opacity=".8"/>')
-    # lift shaft
-    out.append(box(5.85, 15.0, 7.85, 16.9, '#EDEDED', 1.6, stroke=INK))
-    out.append(line(5.85, 15.0, 7.85, 16.9, '#4B5560', 0.9))
-    out.append(line(5.85, 16.9, 7.85, 15.0, '#4B5560', 0.9))
-    out.append(text(X(6.85), Y(15.95) + 3, 'LIFT', 8.5, INK, 800))
-    out.append(text(X(4.45), Y(16.45) + 3, 'STAIR', 9, INK, 800))
-    out.append(text(X(6.95), Y(13.7), 'LOBBY', 9, INK, 800))
-    return ''.join(out)
-
-
-def car(x0, y0, w=2.0, h=4.6, vertical=True):
-    cx0, cy0, cx1, cy1 = x0, y0, x0 + w, y0 + h
-    out = [f'<rect x="{X(cx0):.1f}" y="{Y(cy1):.1f}" width="{S*w:.1f}" height="{S*h:.1f}" rx="9" fill="#7E8A97" stroke="#2F3944" stroke-width="1.4"/>']
-    out.append(f'<rect x="{X(cx0+0.2):.1f}" y="{Y(cy1-0.9):.1f}" width="{S*(w-0.4):.1f}" height="{S*0.55:.1f}" rx="4" fill="#C7D6E2" stroke="#2F3944" stroke-width="0.8"/>')
-    out.append(f'<rect x="{X(cx0+0.2):.1f}" y="{Y(cy0+1.0):.1f}" width="{S*(w-0.4):.1f}" height="{S*0.5:.1f}" rx="4" fill="#C7D6E2" stroke="#2F3944" stroke-width="0.8"/>')
-    out.append(f'<rect x="{X(cx0+0.3):.1f}" y="{Y(cy1-1.7):.1f}" width="{S*(w-0.6):.1f}" height="{S*1.9:.1f}" rx="5" fill="#97A4B1" stroke="none"/>')
-    return ''.join(out)
-
-
-def bed(x0, y0, x1, y1, head='n'):
-    out = [box(x0, y0, x1, y1, '#FFFFFF', 1.1, rx=2)]
-    pw, pl = 0.75, 0.4
-    if head == 'n':
-        out += [box(x0 + .1, y1 - pl - .08, x0 + .1 + pw, y1 - .08, '#E8EEF5', .8), box(x1 - .1 - pw, y1 - pl - .08, x1 - .1, y1 - .08, '#E8EEF5', .8)]
-    elif head == 'e':
-        out += [box(x1 - pl - .08, y0 + .1, x1 - .08, y0 + .1 + pw, '#E8EEF5', .8), box(x1 - pl - .08, y1 - .1 - pw, x1 - .08, y1 - .1, '#E8EEF5', .8)]
-    elif head == 's':
-        out += [box(x0 + .1, y0 + .08, x0 + .1 + pw, y0 + .08 + pl, '#E8EEF5', .8), box(x1 - .1 - pw, y0 + .08, x1 - .1, y0 + .08 + pl, '#E8EEF5', .8)]
-    out.append(box(x0 + .05, y0 + .05, x1 - .05, y0 + (y1 - y0) * .5 if head == 'n' else y1 - .05, 'none', .6, 0.5, stroke='#7A8794'))
-    return ''.join(out)
-
-
-def wc(x, y, rot_n=True):
-    return box(x, y, x + 0.4, y + 0.65, '#FFFFFF', 1, rx=5) + box(x, y + 0.5, x + 0.4, y + 0.75, '#FFFFFF', 1)
-
-
-def sofa(x0, y0, x1, y1):
-    return box(x0, y0, x1, y1, '#C9A98B', 1.1, rx=3)
-
-
-def table(x0, y0, x1, y1, chairs=True, horizontal=True):
-    out = [box(x0, y0, x1, y1, '#E6D2B0', 1.2, rx=3)]
-    if chairs:
-        if horizontal:
-            n = max(2, int((x1 - x0) / 0.6))
-            for i in range(n):
-                cx = x0 + (i + .5) * (x1 - x0) / n
-                out += [box(cx - .2, y1 + .06, cx + .2, y1 + .46, '#B79C73', .8, rx=2), box(cx - .2, y0 - .46, cx + .2, y0 - .06, '#B79C73', .8, rx=2)]
-        else:
-            n = max(2, int((y1 - y0) / 0.6))
-            for i in range(n):
-                cy = y0 + (i + .5) * (y1 - y0) / n
-                out += [box(x1 + .06, cy - .2, x1 + .46, cy + .2, '#B79C73', .8, rx=2), box(x0 - .46, cy - .2, x0 - .06, cy + .2, '#B79C73', .8, rx=2)]
-    return ''.join(out)
-
-
-def counter(x0, y0, x1, y1):
-    return box(x0, y0, x1, y1, '#D9D4C7', 1.2) + box(x0 + .1, y0 + .1, x0 + .6, y0 + .55, '#9FB3C0', .8, rx=2)
-
-
-# ------------------------------------------------------------------ levels
-def swept_overlay():
-    """Swept path: outer R=5.8 / inner R=3.2 (2.6 m car lane), left-turn from aisle into stalls 2,4,6."""
-    out = ['<g class="swept">']
-    # approach centre line (ramp -> wing -> aisle)
-    pts = [(2.2, 16.6), (2.2, 3.4), (2.6, 2.9), (9.2, 2.9), (9.5, 4.2), (9.5, 9.0), (24.0, 9.0)]
-    d = 'M ' + ' L '.join(f'{X(a):.1f} {Y(b):.1f}' for a, b in pts)
-    out.append(f'<path d="{d}" fill="none" stroke="#C0392B" stroke-width="2.4" stroke-dasharray="9 5" marker-end="url(#arr)" opacity=".95"/>')
-    cols = {1: '#C0392B', 3: '#D35400', 5: '#8E44AD'}
-    for i in (1, 3, 5):
-        xs = 8.5 + 2.6 * i + 1.3
-        cx, cy = xs - 4.5, 13.5
-        ro, ri = 5.8, 3.2
-        p1 = (cx, cy - ro); p2 = (cx + ro, cy); p3 = (cx + ri, cy); p4 = (cx, cy - ri)
-        d = (f'M {X(p1[0]):.1f} {Y(p1[1]):.1f} A {S*ro:.1f} {S*ro:.1f} 0 0 0 {X(p2[0]):.1f} {Y(p2[1]):.1f} '
-             f'L {X(p3[0]):.1f} {Y(p3[1]):.1f} A {S*ri:.1f} {S*ri:.1f} 0 0 1 {X(p4[0]):.1f} {Y(p4[1]):.1f} Z')
-        out.append(f'<path d="{d}" fill="{cols[i]}" fill-opacity=".20" stroke="{cols[i]}" stroke-width="1.6" stroke-dasharray="5 3"/>')
-        out.append(text(X(cx + 4.6), Y(cy - 4.9) + 4, f'P{i+1}', 10, cols[i], 800))
-    out.append(f'<rect x="{X(11.2):.1f}" y="{Y(8.0):.1f}" width="190" height="34" fill="#FFFFFF" fill-opacity=".92" stroke="#C0392B" stroke-width="1"/>')
-    out.append(text(X(11.2) + 6, Y(8.0) + 14, 'SWEPT PATH  R_out = 5.8 m', 10, '#C0392B', 800, 'start', family='Menlo, monospace'))
-    out.append(text(X(11.2) + 6, Y(8.0) + 27, 'R_in = 3.2 m · lane 2.6 m · 6.0m aisle', 9.5, '#C0392B', 700, 'start', family='Menlo, monospace'))
-    out.append('</g>')
-    return ''.join(out)
-
-
-def passive_overlay(level):
-    out = ['<g class="passive">']
-    wind = '#1E78C8'
-    for i, x in enumerate((9.5, 12.5, 15.5)):
-        y_end = {'B': 9.5, 'G': 8.2, 'T': 6.6, 'R': 12.2}[level]
-        out.append(f'<path class="flow" d="M {X(x):.1f} {Y(19.2):.1f} L {X(x):.1f} {Y(y_end):.1f}" stroke="{wind}" stroke-width="3" fill="none" stroke-dasharray="10 6" marker-end="url(#arr)"/>')
-    out.append(text(X(12.5), Y(19.3) - 2, 'PREVAILING NORTH WIND', 10, wind, 800, family='Menlo, monospace'))
-    if level != 'B':
-        out.append(f'<path class="flow" d="M {X(15.5):.1f} {Y(9.7):.1f} C {X(18):.1f} {Y(9.7):.1f} {X(18):.1f} {Y(8):.1f} {X(15.5):.1f} {Y(8):.1f}" stroke="{wind}" stroke-width="2" fill="none" stroke-dasharray="6 4"/>')
-        out.append(text(X(15.5), Y(9.75) + 3, 'STACK ↑', 9, wind, 800))
-    for x, c, t in ((20.0, '#E8710A', 'SUMMER 83.4°'), (22.6, '#2B7BB9', 'WINTER 36.6°')):
-        out.append(f'<path d="M {X(x):.1f} {Y(0.2):.1f} L {X(x):.1f} {Y(2.6):.1f}" stroke="{c}" stroke-width="3" fill="none" marker-end="url(#arr)"/>')
-        out.append(text(X(x), Y(2.9), t, 9, c, 800, family='Menlo, monospace'))
-    out.append('</g>')
-    return ''.join(out)
-
-
-def plan_basement(passive=False):
-    AREAS.clear()
-    p = [site('B', 'B')]
-    # ramp
-    p.append(rect(0, 1, 3, 17, '#D5D0C1', sw=3))
-    p.append(rect(0, 1, 3, 17, 'url(#hat)', stroke='none', sw=0))
-    for yy in (14, 11, 8, 5):
-        p.append(f'<path d="M {X(2.2):.1f} {Y(yy+1.2):.1f} L {X(2.2):.1f} {Y(yy-0.2):.1f}" stroke="{INK}" stroke-width="1.6" marker-end="url(#arr)" fill="none"/>')
-    p.append(text(X(0.9), Y(9.5), 'CAR RAMP 20% · 16.0 m · 3.0 m wide ↓ −3.20', 10.5, INK, 800, rot=-90, extra=HALO))
-    # garage + wings
-    p.append(room(3, 1, 10.5, 5, 'DRIVE WING|(ramp → garage)', 'garage', 'bsmt_wing', fs=11))
-    p.append(room(8, 6, 24.25, 12, '', 'garage', 'bsmt_aisle', show_area=False))
-    _LBL.append(text(X(16.1), Y(11.2), '6.0 m MANEUVERING AISLE · COLUMN-FREE', 11.5, INK, 800, extra=HALO))
-    p.append(rect(8, 5, 10.5, 6, KIND['garage'], sw=2))
-    p.append(room(10.5, 5, 19.5, 6, 'MEP / LIGHT TRENCH', 'service', None, show_area=False, fs=9))
-    # stalls
-    for i in range(6):
-        x0 = 8.5 + 2.6 * i
-        p.append(rect(x0, 12, x0 + 2.6, 17, KIND['garage'], sw=1.6))
-        p.append(car(x0 + 0.3, 12.2))
-        p.append(text(X(x0 + 1.3), Y(16.9) + 1, f'P{i+1}', 11, '#0B1522', 800))
-    for i in range(7):
-        x = 8.5 + 2.6 * i
-        p.append(box(x - 0.2, 11.8, x + 0.2, 12.2, INK, 1, stroke=INK))
-    # west amenity block
-    p.append(room(3, 9.5, 8, 12.5, 'SMALL GYM', 'work', 'bsmt_gym'))
-    p.append(box(3.3, 10.0, 5.2, 10.7, '#BFC7CF', 1)); p.append(box(5.6, 11.4, 7.5, 12.1, '#BFC7CF', 1)); circ_ = circ(6.5, 10.3, .35, '#BFC7CF')
-    p.append(circ_)
-    p.append(room(3, 7.5, 4.5, 9.5, 'BATH|1', 'wet', 'bsmt_bath1', fs=8.5))
-    p.append(room(4.5, 7.5, 6, 9.5, 'BATH|2', 'wet', 'bsmt_bath2', fs=8.5))
-    p.append(room(6, 7.5, 8, 9.5, 'KITCH-|ENETTE', 'service', 'bsmt_kit', fs=8.5))
-    p.append(wc(3.2, 8.0)); p.append(wc(4.7, 8.0)); p.append(counter(6.1, 8.9, 7.9, 9.4))
-    p.append(room(3, 5, 5.5, 7.5, 'STORE', 'service', 'bsmt_store'))
-    p.append(room(5.5, 5, 6.75, 7.5, 'ELEC|UTIL', 'service', 'bsmt_elec', fs=8.5))
-    p.append(room(6.75, 5, 8, 7.5, 'WATER|UTIL', 'service', 'bsmt_water', fs=8.5))
-    # family room facing the pool
-    p.append(room(19.5, 1, 24.25, 6, 'FAMILY SITTING|overlooks pool', 'living', 'bsmt_family', fs=11))
-    p.append(sofa(20.0, 1.4, 23.6, 2.2)); p.append(sofa(23.4, 2.4, 24.1, 4.8)); p.append(box(20.9, 3.0, 22.3, 4.0, '#E6D2B0', 1, rx=3))
-    # core
-    p.append(core_plan('B'))
-    # walls
-    poly = [(3, 1), (10.5, 1), (10.5, 5), (19.5, 5), (19.5, 1), (24.25, 1), (24.25, 17), (3, 17)]
-    pts = ' '.join(f'{X(a):.1f},{Y(b):.1f}' for a, b in poly)
-    p.append(f'<polygon points="{pts}" fill="none" stroke="{INK}" stroke-width="7" stroke-linejoin="miter"/>')
-    p.append(line(3, 1.5, 3, 4.5, VEL, 7))
-    p.append(text(X(3) + 5, Y(3.0) + 3, 'GARAGE DOOR', 7.5, '#6B1F1F', 800, rot=-90))
-    p.append(win(19.5, 1.5, 19.5, 5.4)); p.append(win(20.2, 1, 23.8, 1))
-    p.append(door(21.0, 6, 1, 0, 0, -1, .9)); p.append(door(8, 10.2, 0, 1, -1, 0, .9)); p.append(door(8, 8.2, 0, 1, -1, 0, .8))
-    p.append(door(8, 13.4, 0, 1, 1, 0, .9)); p.append(door(10.5, 17.0, 1, 0, 0, -1, .0001))
-    p.append(flush())
-    p.append(frame('B', 'A-01 · BASEMENT −3.20 m · 304.0 m² · 6 CARS · SWEPT PATH · POOL BUFFER',
-                   f'SHEET A-01 · PLOT 83 · {PLOT_AREA:.0f} m²'))
-    p.append(swept_overlay())
-    if passive:
-        p.append(passive_overlay('B'))
-    return ''.join(p)
-
-
-def plan_ground(passive=False):
-    p = [site('G', 'G'), trees()]
-    # ramp
-    p.append(rect(0, 1, 3, 17, '#D5D0C1', sw=3))
-    p.append(rect(0, 1, 3, 17, 'url(#hat)', stroke='none', sw=0))
-    for yy in (14, 11, 8, 5):
-        p.append(f'<path d="M {X(2.2):.1f} {Y(yy+1.2):.1f} L {X(2.2):.1f} {Y(yy-0.2):.1f}" stroke="{INK}" stroke-width="1.6" marker-end="url(#arr)" fill="none"/>')
-    p.append(text(X(0.9), Y(9.5), 'OPEN CAR RAMP ↓ −3.20 (20%)', 10.5, INK, 800, rot=-90, extra=HALO))
-    p.append(room(3, 12.5, 8, 17, '', 'core', None, False))
-    p.append(room(8, 14.5, 12, 17, 'ENTRANCE|LOBBY', 'living', 'g_lobby'))
-    p.append(room(12, 11.5, 17, 17, 'GUEST MAJLIS|(north · prevailing wind)', 'living', 'g_majlis', fs=10.5))
-    p.append(room(8, 11.5, 12, 14.5, 'FAMILY|LOUNGE', 'living', 'g_lounge'))
-    p.append(room(8, 8, 14, 11.5, 'DINING', 'living', 'g_dining'))
-    p.append(room(14, 8, 17, 11.5, 'COURTYARD|VENT SHAFT', 'void', 'g_court', fs=9.5, sw=2))
-    p.append(room(8, 7, 17, 8, 'SOUTH LOGGIA  (shaded by 1.0 m overhang)', 'out', 'g_loggia', show_area=False, fs=9))
-    p.append(room(3, 9, 8, 12.5, 'KITCHEN / PREP', 'service', 'g_kitchen'))
-    p.append(room(3, 7, 5.5, 9, 'ZERO-WASTE|HUB', 'service', 'g_hub', fs=9))
-    p.append(room(5.5, 7, 8, 9, 'WC +|LAUNDRY', 'wet', 'g_wc', fs=9))
-    p.append(room(17, 7, 24.25, 12, 'GUEST SUITE', 'bed', 'g_guest'))
-    p.append(room(17, 12, 24.25, 17, 'STUDY / OFFICE', 'work', 'g_office'))
-    # core
-    p.append(core_plan('G'))
-    # furniture
-    p.append(sofa(12.4, 15.9, 16.4, 16.7)); p.append(sofa(12.4, 12.0, 13.0, 15.6)); p.append(box(14.2, 13.9, 15.8, 14.9, '#E6D2B0', 1, rx=3))
-    p.append(sofa(8.3, 12.0, 11.7, 12.7)); p.append(box(9.2, 13.1, 10.8, 13.9, '#E6D2B0', 1, rx=3))
-    p.append(table(9.0, 9.4, 12.6, 10.3))
-    p.append(counter(3.1, 11.8, 7.9, 12.4)); p.append(counter(3.1, 9.2, 3.7, 11.8)); p.append(box(4.8, 10.2, 6.8, 11.0, '#D9D4C7', 1.2))
-    p.append(bed(18.0, 8.0, 20.0, 10.0, 'e')); p.append(box(23.4, 8.0, 24.1, 10.8, '#D9D4C7', 1))
-    p.append(box(18.0, 15.9, 21.2, 16.7, '#D9C9A8', 1.2)); p.append(box(23.4, 12.3, 24.1, 16.7, '#D9D4C7', 1))
-    p.append(wc(5.8, 8.0)); p.append(box(6.8, 7.2, 7.7, 8.0, '#BFC7CF', 1))
-    for (x, y) in ((15.0, 9.2), (15.9, 10.5), (14.5, 10.6)):
-        p.append(circ(x, y, .25, '#6FA55A', '#3E6B2F', 1))
-    # walls
-    p.append(f'<rect x="{X(BX0):.1f}" y="{Y(17):.1f}" width="{S*(BX1-BX0):.1f}" height="{S*10:.1f}" fill="none" stroke="{INK}" stroke-width="7"/>')
-    p.append(win(12.8, 17, 16.4, 17)); p.append(win(18.2, 17, 23.2, 17)); p.append(win(24.25, 8.2, 24.25, 11.2)); p.append(win(24.25, 13.0, 24.25, 16.2))
-    p.append(win(3, 10.0, 3, 12.0)); p.append(win(3, 7.6, 3, 8.4)); p.append(win(9.0, 7, 13.0, 7)); p.append(win(18.0, 7, 23.0, 7))
-    p.append(door(9.0, 17, 1, 0, 0, -1, 1.2) .replace('stroke-width="7"', 'stroke-width="8"'))
-    p.append(door(8, 15.2, 0, 1, 1, 0, .9)); p.append(door(12, 14.0, 0, 1, -1, 0, .9)); p.append(door(17, 9.0, 0, 1, 1, 0, .9)); p.append(door(17, 14.5, 0, 1, 1, 0, .9))
-    p.append(door(8, 10.3, 0, 1, 1, 0, .9)); p.append(door(4.0, 9.0, 1, 0, 0, 1, .8))
-    p.append(flush())
-    p.append(frame('G', 'A-01 · GROUND FLOOR  +0.45 m  ·  50% = 212.50 m²',
-                   f'SHEET A-01 · PLOT 83 · {PLOT_AREA:.0f} m²'))
-    p.append(dimh(BX0, BX1, int(Y(6.3)), '21.25m', 10.5)); p.append(dimv(7, 17, int(X(24.7)), '10.00m', 9))
-    p.append(text(X(3.3), Y(3.0), 'GROUND  21.25 × 10.00', 10.5, '#7A1F1F', 800, 'start', family='Menlo, monospace')); p.append(text(X(3.3), Y(2.2), '= 212.50 m² (50.00 %)', 10.5, '#7A1F1F', 800, 'start', family='Menlo, monospace'))
-    p.append(swept_overlay().replace('class="swept"', 'class="swept" style="display:none"') if False else '')
-    if passive:
-        p.append(passive_overlay('G'))
-    return ''.join(p)
-
-
-def plan_typical(passive=False):
-    p = [site('T', 'T'), trees()]
-    p.append(room(3, 12.5, 8, 17, '', 'core', None, False))
-    p.append(room(8, 11.5, 17, 17, 'RECEPTION / LIVING|(north · prevailing wind)', 'living', 't_recep', fs=11))
-    p.append(room(8, 8, 14, 11.5, 'DINING', 'living', 't_dining'))
-    p.append(room(14, 8, 17, 11.5, 'COURTYARD|VENT SHAFT', 'void', 't_court', fs=9.5, sw=2))
-    p.append(room(8, 6, 14, 8, 'PASSAGE / STUDY NOOK', 'work', 't_pass', fs=9))
-    p.append(room(14, 6, 17, 8, 'BALCONY', 'out', 't_balc', fs=9))
-    p.append(room(3, 9, 8, 12.5, 'KITCHEN|(west wall)', 'service', 't_kitchen', fs=10))
-    p.append(room(3, 6, 5.5, 9, 'BATH 1', 'wet', 't_bath1', fs=9.5))
-    p.append(room(5.5, 6, 8, 9, 'BATH 2', 'wet', 't_bath2', fs=9.5))
-    p.append(room(17, 13.33, 24.25, 17, 'MASTER BEDROOM|(east)', 'bed', 't_bed1', fs=10))
-    p.append(room(17, 9.67, 24.25, 13.33, 'BEDROOM 2|(east)', 'bed', 't_bed2', fs=10))
-    p.append(room(17, 6, 24.25, 9.67, 'BEDROOM 3|(east)', 'bed', 't_bed3', fs=10))
-    p.append(core_plan('T'))
-    # furniture
-    p.append(sofa(9.0, 15.9, 13.2, 16.7)); p.append(sofa(15.9, 12.0, 16.7, 15.7)); p.append(sofa(9.0, 12.0, 9.7, 15.0)); p.append(box(11.0, 13.6, 14.0, 14.7, '#E6D2B0', 1, rx=3)); p.append(box(13.4, 11.7, 15.6, 12.1, '#2F3944', 1))
-    p.append(table(9.4, 9.4, 12.8, 10.3))
-    p.append(counter(3.1, 12.0, 7.9, 12.4)); p.append(counter(3.1, 9.1, 3.55, 12.0)); p.append(box(4.7, 10.3, 6.7, 11.1, '#D9D4C7', 1.2))
-    p.append(wc(3.3, 6.6)); p.append(box(4.3, 6.2, 5.3, 6.8, '#BFC7CF', 1)); p.append(box(3.15, 8.2, 3.95, 8.9, '#BFC7CF', 1))
-    p.append(wc(5.9, 6.6)); p.append(box(6.8, 6.2, 7.8, 6.8, '#BFC7CF', 1)); p.append(box(5.65, 8.2, 6.45, 8.9, '#BFC7CF', 1))
-    p.append(bed(20.0, 14.0, 22.0, 16.2, 'e')); p.append(box(17.2, 15.6, 17.8, 16.8, '#D9D4C7', 1))
-    p.append(bed(20.0, 10.5, 22.0, 12.7, 'e')); p.append(box(17.2, 12.0, 17.8, 13.1, '#D9D4C7', 1))
-    p.append(bed(20.0, 6.9, 22.0, 9.0, 'e')); p.append(box(17.2, 8.5, 17.8, 9.5, '#D9D4C7', 1))
-    for (x, y) in ((15.0, 9.2), (15.9, 10.5), (14.5, 10.6)):
-        p.append(circ(x, y, .25, '#6FA55A', '#3E6B2F', 1))
-    # outer wall: typical floor 21.25 x 11 = 233.75
-    p.append(f'<rect x="{X(BX0):.1f}" y="{Y(17):.1f}" width="{S*(BX1-BX0):.1f}" height="{S*11:.1f}" fill="none" stroke="{INK}" stroke-width="7"/>')
-    p.append(win(9.0, 17, 16.4, 17)); p.append(win(18.0, 17, 23.5, 17)); p.append(win(24.25, 14.0, 24.25, 16.5)); p.append(win(24.25, 10.4, 24.25, 12.9)); p.append(win(24.25, 6.8, 24.25, 9.3))
-    p.append(win(3, 10.0, 3, 12.0)); p.append(win(3, 7.0, 3, 7.8)); p.append(win(3, 6.6, 3, 6.9)); p.append(win(18.0, 6, 23.5, 6)); p.append(win(9.0, 6, 13.0, 6))
-    p.append(door(8, 15.2, 0, 1, 1, 0, .9)); p.append(door(8, 10.3, 0, 1, 1, 0, .9)); p.append(door(8.4, 9.0, 0, 1, 1, 0, .001))
-    p.append(door(17, 16.0, 0, -1, -1, 0, .9)); p.append(door(17, 12.6, 0, -1, -1, 0, .9)); p.append(door(17, 9.0, 0, -1, -1, 0, .9))
-    p.append(door(4.0, 9.0, 1, 0, 0, -1, .8)); p.append(door(6.5, 9.0, 1, 0, 0, -1, .8))
-    p.append(flush())
-    p.append(frame('T', 'A-01 · TYPICAL ×3  +3.75 / +7.05 / +10.35 · 55% = 233.75 m²',
-                   f'SHEET A-01 · PLOT 83 · {PLOT_AREA:.0f} m²'))
-    p.append(dimh(BX0, BX1, int(Y(5.3)), '21.25m', 10.5)); p.append(dimv(6, 17, int(X(24.7)), '11.00m', 9))
-    p.append(text(X(3.3), Y(3.0), 'TYPICAL  21.25 × 11.00', 10.5, '#7A1F1F', 800, 'start', family='Menlo, monospace')); p.append(text(X(3.3), Y(2.2), '= 233.75 m² (55.00 %)', 10.5, '#7A1F1F', 800, 'start', family='Menlo, monospace'))
-    p.append(text(X(12.0), Y(4.55) + 0, '', 9))
-    if passive:
-        p.append(passive_overlay('T'))
-    return ''.join(p)
-
-
-def plan_roof(passive=False):
-    p = [site('R', 'R'), trees()]
-    # lower flat roof (typical roof slab) 233.75 outline
-    p.append(rect(BX0, 6, BX1, 12, '#E6E3D8', sw=1.4, extra='stroke-dasharray="8 5"'))
-    p.append(rect(BX0, 6, BX1, 12, 'url(#hat)', stroke='none', sw=0, extra='opacity=".5"'))
-    p.append(text(X(10.0), Y(10.3), 'COOL / GREEN ROOF OF TYPICAL FLOOR', 10, '#4A463C', 800))
-    p.append(text(X(10.0), Y(9.5), '127.50 m² catchment · AC-condensate + rain tank', 9.5, '#4A463C', 600))
-    p.append(circ(5.2, 7.6, 0.9, '#9DC4D8', INK, 1.4)); p.append(text(X(5.2), Y(7.6) + 3, 'TANK', 8, INK, 800))
-    p.append(rect(14, 8, 17, 11.5, KIND['void'], sw=1.8, extra='stroke-dasharray="5 3"'))
-    p.append(text(X(15.5), Y(9.75) + 3, 'SHAFT ▲', 9.5, INK, 800))
-    for i in range(6):
-        p.append(box(18.0 + i * 1.0, 7.0, 18.8 + i * 1.0, 11.5, '#8FA9C4', .8))
-    p.append(text(X(21.0), Y(6.55), 'SOLAR THERMAL ROW', 8.5, '#0B1522', 800))
-    # roof level 25% = 106.25
-    p.append(rect(BX0, 12, BX1, 17, KIND['roof'], sw=2.6))
-    AREAS['roof'] = (BX1 - BX0) * 5
-    p.append(core_plan('R').replace('LOBBY', 'OVERRUN'))
-    p.append(rect(8, 12, 24.25, 17, '#EFEBE0', sw=2))
-    for r in range(4):
-        for c in range(7):
-            x0 = 8.6 + c * 2.2
-            y0 = 12.6 + r * 1.0
-            p.append(f'<rect x="{X(x0):.1f}" y="{Y(y0+0.78):.1f}" width="{S*1.9:.1f}" height="{S*0.78:.1f}" fill="#2E4A6B" stroke="#A9C2DC" stroke-width="1"/>')
-    p.append(text(X(12.5), Y(8.4), 'PV ARRAY above: 28 panels ≈ 41.5 m²', 10, '#0B1522', 800))
-    p.append(text(X(12.5), Y(7.6), 'pergola-mounted · shades roof terrace', 9, '#0B1522', 600))
-    p.append(f'<rect x="{X(BX0):.1f}" y="{Y(17):.1f}" width="{S*(BX1-BX0):.1f}" height="{S*5:.1f}" fill="none" stroke="{INK}" stroke-width="7"/>')
-    p.append(door(8.0, 14.0, 0, 1, -1, 0, .9))
-    p.append(flush())
-    p.append(frame('R', 'A-01 · ROOF LEVEL  +13.65 m  ·  25% = 106.25 m²',
-                   f'SHEET A-01 · PLOT 83 · {PLOT_AREA:.0f} m²'))
-    p.append(dimh(BX0, BX1, int(Y(5.3)), '21.25m', 10.5)); p.append(dimv(12, 17, int(X(24.7)), '5.00m', 9))
-    p.append(text(X(3.3), Y(3.0), 'ROOF LEVEL  21.25 × 5.00', 10.5, '#7A1F1F', 800, 'start', family='Menlo, monospace')); p.append(text(X(3.3), Y(2.2), '= 106.25 m² (25.00 %)', 10.5, '#7A1F1F', 800, 'start', family='Menlo, monospace'))
-    if passive:
-        p.append(passive_overlay('R'))
-    return ''.join(p)
-
-
-def svg_wrap(inner, cls='', w=CW, h=CH, idn=''):
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}" class="{cls}" {idn} font-family="Helvetica Neue, Arial, sans-serif">{defs()}{inner}</svg>'
-
-
-def all_plans(passive=False):
-    return {'B': svg_wrap(plan_basement(passive), 'plan'), 'G': svg_wrap(plan_ground(passive), 'plan'),
-            'T': svg_wrap(plan_typical(passive), 'plan'), 'R': svg_wrap(plan_roof(passive), 'plan')}
-
-
-# ------------------------------------------------------------------ section A-A
-SX0, SSC = 70, 36           # x origin, px/m
-Z0 = 700                    # z=0 at pixel row
-SEC_W, SEC_H = 800, 840
-
-
-def SX(y): return SX0 + SSC * (PH - y)
-def SZ(z): return Z0 - SSC * z
-
-
-def sec_rect(y_n, y_s, z0, z1, fill, stroke=INK, sw=1.4, extra=''):
-    return f'<rect x="{SX(y_n):.1f}" y="{SZ(z1):.1f}" width="{SSC*(y_n-y_s):.1f}" height="{SSC*(z1-z0):.1f}" fill="{fill}" stroke="{stroke}" stroke-width="{sw}" {extra}/>'
-
-
-def sec_text(y, z, t, fs=10, fill=INK, weight=700, anchor='middle', rot=0):
-    return text(SX(y), SZ(z), t, fs, fill, weight, anchor, rot)
-
-
-def section_svg():
-    p = [defs(), f'<rect width="{SEC_W}" height="{SEC_H}" fill="{VEL}"/>']
-    # ground / site
-    p.append(f'<rect x="0" y="{SZ(0):.1f}" width="{SX(17)-0:.1f}" height="14" fill="#CFCCC3"/>')           # road
-    p.append(text(36, SZ(0) + 11, 'N ROAD 15m', 9, '#4A463C', 800))
-    p.append(f'<rect x="{SX(17):.1f}" y="{SZ(0):.1f}" width="{SSC*17:.1f}" height="{SSC*3.4:.1f}" fill="#D8D2BE"/>')       # soil
-    p.append(f'<rect x="{SX(17):.1f}" y="{SZ(0):.1f}" width="{SSC*17:.1f}" height="{SSC*3.4:.1f}" fill="url(#hat)" opacity=".5"/>')
-    p.append(f'<line x1="{SX(17)}" y1="{SZ(0)}" x2="{SX(0)}" y2="{SZ(0)}" stroke="#4B5C3B" stroke-width="2.4"/>')
-    p.append(sec_text(1.2, 0.35, 'GARDEN ±0.00', 9.5, '#3E6B2F'))
-    # basement shell
-    p.append(sec_rect(17, 5, -3.2, 0.15, '#E1E2DE', sw=0))
-    # stall + car profile (stall 3 at cut)
-    p.append(sec_rect(17, 12, -3.2, -0.6, '#D9DAD5', sw=0))
-    p.append(sec_rect(16.7, 12.3, -3.05, -2.3, '#7E8A97', stroke='#2F3944', sw=1.2, extra='rx="8"'))
-    p.append(sec_rect(15.6, 13.4, -2.3, -1.7, '#C7D6E2', stroke='#2F3944', sw=1, extra='rx="6"'))
-    p.append(sec_text(14.5, -1.3, 'STALL P3 (CAR)', 9, '#2F3944'))
-    p.append(sec_text(9.0, -1.4, '6.0 m AISLE', 10, '#2F3944'))
-    p.append(sec_text(9.0, -1.95, '(no columns in lane)', 9, '#2F3944', 600))
-    # slabs (poche)
-    def slab(yn, ys, z, t=0.3, fill=INK):
-        return sec_rect(yn, ys, z - t, z, fill, sw=0)
-    p.append(slab(17, 5, -3.2 + 0.3, 0.3))                         # basement slab on grade
-    p.append(sec_rect(17, 5, -3.5, -3.2, INK, sw=0))
-    p.append(slab(17, 7, 0.45))                                    # ground slab
-    for z in (3.75, 7.05, 10.35):
-        p.append(slab(17, 6, z))
-    p.append(slab(17, 6, 13.65))                                   # roof of typical floors
-    p.append(sec_rect(17, 12, 16.35, 16.65, INK, sw=0))            # roof-level slab
-    # walls: north wall y 17 and south wall; courtyard void walls
-    p.append(sec_rect(17.0, 16.78, -3.5, 16.65, INK, sw=0))
-    p.append(sec_rect(5.22, 5.0, -3.5, 0.15, INK, sw=0))           # basement south wall
-    p.append(sec_rect(7.22, 7.0, 0.15, 3.45, INK, sw=0))           # ground south wall (with openings below)
-    for z0 in (3.75, 7.05, 10.35):
-        p.append(sec_rect(6.22, 6.0, z0, z0 + 3.0, INK, sw=0))
-    # window openings (cut out walls): north reception at each floor, south loggia
-    for z in (0.45, 3.75, 7.05, 10.35):
-        p.append(sec_rect(17.0, 16.78, z + 0.9, z + 2.4, VEL, sw=0))
-        p.append(sec_rect(17.0, 16.78, z + 0.9, z + 2.4, '#CFE6F2', stroke='#3C8DB8', sw=1.2))
-    p.append(sec_rect(7.22, 7.0, 0.45 + 0.1, 0.45 + 2.5, VEL, sw=0)); p.append(sec_rect(7.22, 7.0, 0.55, 2.95, '#CFE6F2', stroke='#3C8DB8', sw=1.2))
-    for z in (3.75, 7.05, 10.35):
-        p.append(sec_rect(6.22, 6.0, z + 0.1, z + 2.7, VEL, sw=0)); p.append(sec_rect(6.22, 6.0, z + 0.1, z + 2.7, '#CFE6F2', stroke='#3C8DB8', sw=1.2))
-    # brise-soleil 0.9 m at each typical floor head + ground overhang (1.0 m = typical slab over y6..7)
-    for z in (3.75 + 3.0, 7.05 + 3.0):
-        p.append(sec_rect(6.0, 5.1, z - 0.0, z + 0.12, '#8A6B2F', sw=0))
-    p.append(sec_rect(6.0, 5.1, 3.75 - 0.0 + 0.0 - 0.0, 3.75 + 0.0, 'none', sw=0))
-    p.append(sec_rect(6.0, 5.1, 13.65 - 0.12, 13.65, '#8A6B2F', sw=0))
-    p.append(sec_rect(6.0, 5.1, 3.75 - 0.12 + 0.0, 3.75, 'none', sw=0))
-    # level markers
-    lv = [(-3.2, 'BASEMENT −3.20'), (0.45, 'GROUND +0.45'), (3.75, 'TYPICAL 1  +3.75'), (7.05, 'TYPICAL 2  +7.05'), (10.35, 'TYPICAL 3  +10.35'), (13.65, 'ROOF +13.65'), (16.65, 'PARAPET +16.65')]
-    for z, t in lv:
-        p.append(f'<line x1="{SX(17)-38:.1f}" y1="{SZ(z):.1f}" x2="{SX(17)+10:.1f}" y2="{SZ(z):.1f}" stroke="#7A1F1F" stroke-width="1"/>')
-        p.append(f'<path d="M {SX(17)-14:.1f} {SZ(z)-6:.1f} L {SX(17)-8:.1f} {SZ(z):.1f} L {SX(17)-14:.1f} {SZ(z)+6:.1f}" fill="none" stroke="#7A1F1F" stroke-width="1"/>')
-    p.append(f'<g font-family="Menlo, monospace" font-size="8.5" font-weight="700" fill="#7A1F1F">'
-             + ''.join(f'<text x="2" y="{SZ(z)-3:.1f}">{esc(t.split("  ")[-1] if "TYPICAL" in t else t.split(" ")[-1])}</text>' for z, t in lv) + '</g>')
-    # room labels at cut
-    for z, nm in ((0.45, 'MAJLIS'), (3.75, 'RECEPTION'), (7.05, 'RECEPTION'), (10.35, 'RECEPTION')):
-        p.append(sec_text(14.25, z + 1.7, nm, 10.5, '#4A463C', 700))
-    # courtyard shaft (void) y 8..11.5 from z .45 up to open sky
-    p.append(sec_rect(11.5, 8.0, 0.45, 16.9, '#D5E8F2', stroke='none', sw=0, extra='opacity=".75"'))
-    p.append(f'<line x1="{SX(11.5):.1f}" y1="{SZ(0.45):.1f}" x2="{SX(11.5):.1f}" y2="{SZ(16.9):.1f}" stroke="{INK}" stroke-width="2" stroke-dasharray="7 4"/>')
-    p.append(f'<line x1="{SX(8.0):.1f}" y1="{SZ(0.45):.1f}" x2="{SX(8.0):.1f}" y2="{SZ(16.9):.1f}" stroke="{INK}" stroke-width="2" stroke-dasharray="7 4"/>')
-    p.append(sec_text(9.75, 12.0, 'COURTYARD', 10, '#1F5B7A', 800, rot=-90))
-    p.append(sec_text(9.75, 5.5, 'VENT SHAFT', 10, '#1F5B7A', 800, rot=-90))
-    p.append(sec_text(7.0, 0.35, '', 9))
-    # loggia/balcony labels
-    p.append(sec_text(6.6, 1.65, 'LOGGIA', 8.5, '#4A463C', 800, rot=-90))
-    p.append(sec_text(7.0, 5.0, 'BALCONY', 8.5, '#4A463C', 800, rot=-90))
-    # roof-level pavilion + PV
-    p.append(sec_rect(17, 12, 13.65, 16.35, '#ECE9DF', stroke='none', sw=0))
-    p.append(sec_text(14.5, 14.2, 'ROOF TERRACE', 10, '#4A463C', 700)); p.append(sec_text(14.5, 13.9, '', 8))
-    p.append(f'<polygon points="{SX(16.5):.1f},{SZ(15.6):.1f} {SX(12.5):.1f},{SZ(16.6):.1f} {SX(12.5):.1f},{SZ(16.45):.1f} {SX(16.5):.1f},{SZ(15.45):.1f}" fill="#2E4A6B" stroke="#A9C2DC"/>')
-    p.append(sec_text(14.5, 17.25, 'PV @ 30°  (pergola)', 9.5, '#2E4A6B', 800))
-    p.append(sec_rect(6.0, 5.0, 13.65, 13.95, '#B9C7A8', stroke='none', sw=0))
-    p.append(sec_rect(12.0, 6.0, 13.65, 13.95, '#B9C7A8', stroke='none', sw=0))
-    p.append(sec_text(9.0, 14.25, 'GREEN / COOL ROOF + RAIN TANK', 9, '#3E6B2F', 800))
-    # pool + buffer + south wall of basement
-    p.append(sec_rect(5.0, 3.5, -3.2, 0.0, '#C9B98F', stroke='#8A6B2F', sw=1.4, extra='opacity=".7"'))
-    p.append(sec_rect(5.0, 3.5, -3.2, 0.0, 'url(#hat2)', stroke='none', sw=0))
-    p.append(sec_text(4.25, -0.9, '1.5m', 9, '#5E4A1A', 800, rot=-90)); p.append(sec_text(4.25, -2.1, 'INSULATED', 8, '#5E4A1A', 800, rot=-90))
-    p.append(sec_rect(3.5, 0.5, -1.6, 0.0, '#86C8DC', stroke='#1F6E8C', sw=2))
-    p.append(sec_rect(3.62, 0.38, -1.75, -1.6, INK, sw=0))
-    p.append(sec_rect(3.62, 3.5, -1.75, 0.05, INK, sw=0)); p.append(sec_rect(0.5, 0.38, -1.75, 0.05, INK, sw=0))
-    p.append(sec_text(2.0, -0.7, 'POOL 3.0 m × 1.5 deep', 9.5, '#0D3C52', 800))
-    p.append(sec_text(2.0, -1.2, '(independent structure)', 8.5, '#0D3C52', 700))
-    p.append(f'<line x1="{SX(5.0)-1:.1f}" y1="{SZ(-3.5):.1f}" x2="{SX(3.5)+1:.1f}" y2="{SZ(-3.5):.1f}" stroke="{INK}" stroke-width="1"/>')
-    # south garden planting
-    p.append(f'<circle cx="{SX(1.2):.1f}" cy="{SZ(1.6):.1f}" r="22" fill="#8DB872" stroke="#3E6B2F"/><rect x="{SX(1.2)-2:.1f}" y="{SZ(0.9):.1f}" width="4" height="{SSC*0.9:.1f}" fill="#6B4E2A"/>')
-    # --- solar rays (south on the right) ---
-    sun = {'summer': ('#E8710A', 83.44), 'equinox': ('#C9A100', 60.0), 'winter': ('#2B7BB9', 36.56)}
-    shade_notes = []
-
-    def ray(season, y_wall, z_t, z_soffit, depth):
-        col, alt = sun[season]
-        ta = math.tan(math.radians(alt))
-        d_hit = (z_soffit - z_t) / ta
-        blocked = d_hit < depth
-        L = 9.0
-        y_start = y_wall - L * math.cos(math.radians(alt))
-        z_start = z_t + L * math.sin(math.radians(alt))
-        if blocked:
-            ye, ze = y_wall - d_hit, z_soffit
-        else:
-            ye, ze = y_wall, z_t
-        dash = '' if not blocked else ' stroke-dasharray="7 4"'
-        out = (f'<line x1="{SX(y_start):.1f}" y1="{SZ(z_start):.1f}" x2="{SX(ye):.1f}" y2="{SZ(ze):.1f}" stroke="{col}" stroke-width="2.4"{dash}/>')
-        out += f'<circle cx="{SX(ye):.1f}" cy="{SZ(ze):.1f}" r="3.6" fill="{col}"/>'
-        if blocked:
-            out += (f'<path d="M {SX(ye)-5:.1f} {SZ(ze)-5:.1f} L {SX(ye)+5:.1f} {SZ(ze)+5:.1f} M {SX(ye)+5:.1f} {SZ(ze)-5:.1f} L {SX(ye)-5:.1f} {SZ(ze)+5:.1f}" stroke="#B03A2E" stroke-width="2"/>')
-        return out, blocked
-
-    # target: Typical 1 south window (z=3.75+1.5) shaded by soffit of T2 brise-soleil (z=7.05-... head 6.75, depth 0.9 beyond wall y=6)
-    for season in ('summer', 'equinox', 'winter'):
-        o, b = ray(season, 6.0, 5.1, 6.75, 0.9)
-        p.append(o)
-        shade_notes.append((season, b))
-    # ground floor window shaded by 1.0 m overhang (typical slab, soffit 3.45)
-    for season in ('summer', 'winter'):
-        o, b = ray(season, 7.0, 1.9, 3.45, 1.0)
-        p.append(o)
-    # sun angle labels
-    ax, az = SX(-4.6), SZ(14.6)
-    p.append(f'<g font-family="Menlo, monospace" font-size="10" font-weight="800">'
-             f'<text x="{SX(0.5)+8:.1f}" y="{SZ(14.9):.1f}" fill="#E8710A">SUMMER NOON 83.4°</text>'
-             f'<text x="{SX(0.5)+8:.1f}" y="{SZ(14.9)+13:.1f}" fill="#C9A100">EQUINOX 60.0°</text>'
-             f'<text x="{SX(0.5)+8:.1f}" y="{SZ(14.9)+26:.1f}" fill="#2B7BB9">WINTER NOON 36.6°</text>'
-             f'<text x="{SX(0.5)+8:.1f}" y="{SZ(14.9)+42:.1f}" fill="#4A463C">LAT 30° N · CAIRO</text></g>')
-    # --- airflow (north wind, animated) ---
-    wc_ = '#1E78C8'
-    for z in (0.45, 3.75, 7.05, 10.35):
-        zc = z + 1.65
-        d = (f'M 16 {SZ(zc):.1f} L {SX(17)-2:.1f} {SZ(zc):.1f} L {SX(14.0):.1f} {SZ(zc):.1f} '
-             f'C {SX(11.5):.1f} {SZ(zc):.1f} {SX(10.5):.1f} {SZ(zc+0.2):.1f} {SX(9.75):.1f} {SZ(zc+1.2):.1f}')
-        p.append(f'<path class="flow" d="{d}" fill="none" stroke="{wc_}" stroke-width="3.2" stroke-dasharray="11 7" marker-end="url(#arr)"/>')
-        d2 = f'M {SX(9.75):.1f} {SZ(zc+0.2):.1f} C {SX(8.6):.1f} {SZ(zc):.1f} {SX(7.6):.1f} {SZ(zc):.1f} {SX(5.4):.1f} {SZ(zc):.1f}'
-        if z > 0.45:
-            p.append(f'<path class="flow" d="{d2}" fill="none" stroke="{wc_}" stroke-width="2.4" stroke-dasharray="9 6" marker-end="url(#arr)" opacity=".85"/>')
-    p.append(f'<path class="flow up" d="M {SX(9.75):.1f} {SZ(1.0):.1f} L {SX(9.75):.1f} {SZ(17.9):.1f}" fill="none" stroke="#C0392B" stroke-width="3.4" stroke-dasharray="10 7" marker-end="url(#arr)"/>')
-    p.append(text(SX(9.75) + 14, SZ(18.15), 'STACK EXHAUST ↑', 10, '#C0392B', 800, family='Menlo, monospace'))
-    p.append(text(18, SZ(0.45 + 1.65) - 10, 'N WIND', 9.5, wc_, 800))
-    # pool cooling → basement light-well
-    p.append(f'<path class="flow" d="M {SX(0.0):.1f} {SZ(0.7):.1f} C {SX(2.5):.1f} {SZ(0.9):.1f} {SX(3.4):.1f} {SZ(1.5):.1f} {SX(4.2):.1f} {SZ(0.1):.1f}" fill="none" stroke="#2E9CCA" stroke-width="2.2" stroke-dasharray="6 5" marker-end="url(#arr)"/>')
-    p.append(text(SX(0.4), SZ(1.5), 'pool-cooled air', 8.5, '#1F6E8C', 800))
-    # N / S markers
-    p.append(text(SX(17) + 4, SZ(18.4), 'NORTH ▶ road side', 11, INK, 800, 'start'))
-    p.append(text(SX(0) - 4, SZ(18.4), 'SOUTH ▶ garden / pool', 11, INK, 800, 'end'))
-    # dims
-    p.append(dimh_sec(17, 0, SZ(-3.9) + 6, '17.00m (N–S)'))
-    p.append(dimh_sec(17, 6.0, SZ(-3.9) - 8, ''))
-    return ''.join(p), shade_notes
-
-
-def dimh_sec(y_a, y_b, ypx, t):
-    a, b = SX(y_a), SX(y_b)
-    c = '#7A1F1F'
-    return (f'<line x1="{a:.1f}" y1="{ypx:.1f}" x2="{b:.1f}" y2="{ypx:.1f}" stroke="{c}"/>'
-            f'<line x1="{a:.1f}" y1="{ypx-4:.1f}" x2="{a:.1f}" y2="{ypx+4:.1f}" stroke="{c}"/><line x1="{b:.1f}" y1="{ypx-4:.1f}" x2="{b:.1f}" y2="{ypx+4:.1f}" stroke="{c}"/>'
-            + (text((a + b) / 2, ypx + 14, t, 10.5, c, 800, family='Menlo, monospace') if t else ''))
-
-
-# ------------------------------------------------------------------ core options (Option A wrap vs B adjacent)
-CS = 44   # px per m for core diagrams
-
-
-def _cr(ox, oy):
-    def R(x, y, w, h, fill='#F7F2E4', sw=1.4, extra=''):
-        return f'<rect x="{ox+x*CS:.1f}" y="{oy+y*CS:.1f}" width="{w*CS:.1f}" height="{h*CS:.1f}" fill="{fill}" stroke="{INK}" stroke-width="{sw}" {extra}/>'
-
-    def L(x0, y0, x1, y1):
-        return f'<line x1="{ox+x0*CS:.1f}" y1="{oy+y0*CS:.1f}" x2="{ox+x1*CS:.1f}" y2="{oy+y1*CS:.1f}" stroke="#4B5560" stroke-width="0.9"/>'
-
-    def T(x, y, t, fs=10):
-        return f'<text x="{ox+x*CS:.1f}" y="{oy+y*CS+3:.1f}" font-size="{fs}" font-weight="800" text-anchor="middle" fill="{INK}">{esc(t)}</text>'
-    return R, L, T
-
-
-def core_options():
-    W_, H_ = 380, 250
-    wrap = lambda body: (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W_} {H_}" width="{W_}" height="{H_}" '
-                         f'font-family="Helvetica Neue, Arial, sans-serif">{body}</svg>')
-    # Option A: 4.4 x 4.4, west/east flights + north flight around 2.0 x 2.0 lift
-    R, L, T = _cr(80, 14)
-    a = [R(0, 0, 4.4, 4.4, '#D8D0BC', 3.4), R(0, 0, 1.2, 4.4), R(3.2, 0, 1.2, 4.4), R(1.2, 0, 2.0, 1.2)]
-    for i in range(1, 7):
-        yy = 1.2 + 3.2 * i / 7
-        a += [L(0, yy, 1.2, yy), L(3.2, yy, 4.4, yy)]
-    for i in range(1, 5):
-        xx = 1.2 + 2.0 * i / 5
-        a.append(L(xx, 0, xx, 1.2))
-    a += [R(0, 0, 1.2, 1.2, '#E4D9BD'), R(3.2, 0, 1.2, 1.2, '#E4D9BD'),
-          R(1.2, 1.2, 2.0, 2.0, '#EDEDED', 2.6), L(1.2, 1.2, 3.2, 3.2), L(1.2, 3.2, 3.2, 1.2), T(2.2, 2.2, 'LIFT', 11),
-          R(1.2, 3.2, 2.0, 1.2, '#EFE4CC', 1.0, 'stroke-dasharray="4 3"'), T(2.2, 3.85, 'LIFT LOBBY', 9),
-          T(0.6, 2.7, '↑ 1', 9), T(3.8, 2.7, '↓ 3', 9), T(2.2, 0.7, '2 →', 9)]
-    a.append(f'<text x="{80+2.2*CS:.1f}" y="{H_-8}" font-size="11" text-anchor="middle" font-weight="800" fill="#7A1F1F" font-family="Menlo, monospace">4.40 × 4.40 = {4.4*4.4:.2f} m²</text>')
-    # Option B: stair 2.7 x 3.9 (dogleg) + lift 2.0 x 2.0 + lobby
-    R, L, T = _cr(70, 14)
-    b = [R(0, 0, 4.7, 3.9, '#D8D0BC', 3.4), R(0, 0, 2.7, 1.2, '#E4D9BD'), R(0, 1.2, 1.3, 2.7), R(1.4, 1.2, 1.3, 2.7)]
-    for i in range(1, 9):
-        yy = 1.2 + 2.7 * i / 9
-        b += [L(0, yy, 1.3, yy), L(1.4, yy, 2.7, yy)]
-    b += [T(1.35, 0.65, 'LANDING', 8.5), T(0.65, 2.6, '↑ UP', 9), T(2.05, 2.6, '↓ DN', 9),
-          R(2.7, 0, 2.0, 2.0, '#EDEDED', 2.6), L(2.7, 0, 4.7, 2.0), L(2.7, 2.0, 4.7, 0), T(3.7, 1.0, 'LIFT', 11),
-          R(2.7, 2.0, 2.0, 1.9, '#EFE4CC', 1.0, 'stroke-dasharray="4 3"'), T(3.7, 3.0, 'LIFT LOBBY', 9)]
-    b.append(f'<text x="{70+2.35*CS:.1f}" y="{H_-8}" font-size="11" text-anchor="middle" font-weight="800" fill="#7A1F1F" font-family="Menlo, monospace">4.70 × 3.90 = {4.7*3.9:.2f} m²</text>')
-    sc = {'A': {'struct': 9, 'space': 7, 'pass': 6, 'cost': 7}, 'B': {'struct': 7, 'space': 9, 'pass': 8, 'cost': 9}}
-    w = {'struct': .40, 'space': .30, 'pass': .15, 'cost': .15}
-    tot = {k: sum(sc[k][c] * w[c] for c in w) for k in sc}
-    return wrap(''.join(a)), wrap(''.join(b)), sc, w, tot
-
-
-# ------------------------------------------------------------------ schedules
-def area_tables():
-    basement = 21.25 * 12 + 7.5 * 4 + (24.25 - 19.5) * 4     # main + west drive wing + family wing below y=5
-    ramp = 3.0 * 16
-    ground = 21.25 * 10
-    typical = 21.25 * 11
-    roof = 21.25 * 5
-    return dict(basement=basement, ramp=ramp, ground=ground, typical=typical, roof=roof,
-                above=ground + 3 * typical + roof, total=basement + ground + 3 * typical + roof)
-
-
-def schedule_html():
-    a = area_tables()
-    rows = [
-        ('Basement', '−3.20', f'{a["basement"]:.2f}', f'{a["basement"]/PLOT_AREA*100:.1f}%', 'not capped', 'garage 6 cars + amenities'),
-        ('Ground', '+0.45', f'{a["ground"]:.2f}', f'{a["ground"]/PLOT_AREA*100:.2f}%', '50% = 212.50', 'PASS'),
-        ('Typical ×3 (each)', '+3.75 / +7.05 / +10.35', f'{a["typical"]:.2f}', f'{a["typical"]/PLOT_AREA*100:.2f}%', '55% = 233.75', 'PASS'),
-        ('Typical ×3 (total)', '', f'{3*a["typical"]:.2f}', '', '', ''),
-        ('Roof level', '+13.65', f'{a["roof"]:.2f}', f'{a["roof"]/PLOT_AREA*100:.2f}%', '25% = 106.25', 'PASS'),
-        ('Above-ground GFA', '', f'{a["above"]:.2f}', '', '', '1 apartment per floor'),
-        ('Total GFA incl. basement', '', f'{a["total"]:.2f}', '', '', ''),
-    ]
-    t1 = ''.join(f'<tr><td>{esc(r[0])}</td><td>{esc(r[1])}</td><td class="n">{r[2]}</td><td class="n">{r[3]}</td><td>{esc(r[4])}</td><td class="{"ok" if r[5]=="PASS" else ""}">{esc(r[5])}</td></tr>' for r in rows)
-    chk = [
-        ('Plot 17 × 25 m', f'{PLOT_AREA:.2f} m² · diagonal {DIAG:.2f} m', 'PASS'),
-        ('West setback 3.0 m', 'building x ≥ 3.00 on all levels above ground; ramp sits in the strip', 'PASS'),
-        ('South setback 4.0 m', 'ground y ≥ 7.00, typical y ≥ 6.00; pool 3.0 × 6.0 m inside strip', 'PASS'),
-        ('Pool buffer 1.5 m', 'pool to basement wall: 1.50 N / W / E; pool structure independent', 'PASS'),
-        ('Basement south wings', 'drive wing + family wing reach y = 1.0, under the 4.0 m strip (underground only)', 'CODE CHECK'),
-        ('Ramp 20% max', 'drop 3.20 m over 16.0 m in west strip (N road → −3.20)', 'PASS (limit)'),
-        ('6 cars + swept path', 'stalls 2.6 × 5.0 m, aisle 6.0 m, R 3.2 / 5.8 m, 0 columns in lanes', 'PASS'),
-        ('Reception north / bedrooms east / kitchen+baths west', 'all 3 bedrooms on east façade; kitchen and 2 baths on west façade', 'PASS'),
-        ('Daylight + cross-ventilation', 'every habitable room has an external wall; N → courtyard → S loggia path', 'PASS'),
-    ]
-    t2 = ''.join(f'<tr><td>{esc(r[0])}</td><td>{esc(r[1])}</td><td class="{"ok" if r[2].startswith("PASS") else "warn"}">{esc(r[2])}</td></tr>' for r in chk)
-    roof_pv = 28 * 1.9 * 0.78
-    catch = a['typical']
-    zw = [
-        ('Cut-and-fill', f'gross excavation ≈ {a["basement"]*3.5:.0f} m³ (est.); buffer backfill + garden regrading reuse on site; rest to licensed recycling'),
-        ('Rain + condensate', f'catchment {catch:.2f} m²; Cairo ≈ 25 mm/yr gives only ≈ {catch*0.025*0.85:.1f} m³/yr, so AC condensate + greywater are the main sources'),
-        ('Greywater', 'baths + laundry → garden / pool top-up tank in basement'),
-        ('Waste hub', 'ground hub 5.0 m²: 4-stream sorting, compost for garden; kitchen sorting drawers on each floor'),
-        ('Solar PV', f'28 panels = {roof_pv:.1f} m² on roof pergola; also shades terrace'),
-        ('Materials', 'local limestone + hollow-block infill, recycled-aggregate concrete, lime plaster; 21.25 m modular grid, no cut-offs'),
-    ]
-    t3 = ''.join(f'<tr><td>{esc(r[0])}</td><td>{esc(r[1])}</td></tr>' for r in zw)
-    return t1, t2, t3, a
-
-
-# ------------------------------------------------------------------ boards
-CSS_COMMON = '''
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{width:1600px;height:1200px;overflow:hidden;background:#F6F4EE;font-family:"Helvetica Neue",Arial,sans-serif;color:#1B1F24}
-.flow{animation:dash 1.4s linear infinite}
-@keyframes dash{to{stroke-dashoffset:-34}}
+EXPORTS = HERE / 'exports'
+PLAN_DATA = [
+    ('B', 'Basement', '−3.20 m', 'plan_basement_sweptpath', 'Six parking bays',
+     '6.00 m maneuvering aisle · Ri 3.20 / Ro 5.80 m',
+     'Family sitting toward the south courtyard; kitchenette, two bathrooms, gym, storage and utility rooms.'),
+    ('G', 'Ground floor', '+0.45 m', 'plan_ground', '212.50 m² / 50.00%',
+     '13.00 × 17.00 − 8.50 m² open court',
+     'North entry forecourt: 2.00 m. South garden: 6.00 m. Building X = 3.50–16.50 m; Y = 6.00–23.00 m.'),
+    ('T', 'Typical floors ×3', '+3.75 / +7.05 / +10.35 m', 'plan_typical', '233.75 m² / 55.00%',
+     '13.75 × 17.6181818… − 8.50 m² open court',
+     'Reception north; three bedrooms east toward the pedestrian spine; kitchen and bathrooms on the west wall.'),
+    ('R', 'Roof floor', '+13.65 m', 'plan_roof', '106.25 m² / 25.00%',
+     '12.50 × 8.50 m enclosed roof floor',
+     'A compact roof enclosure with open terraces, planting and reserved passive/environmental systems.'),
+]
+
+
+def esc(value):
+    return html.escape(str(value), quote=True)
+
+
+def drawing(key, instance=''):
+    """Inline a canonical SVG with document-unique glyph IDs."""
+    path = EXPORTS / f'{key}.svg'
+    if not path.is_file():
+        raise SystemExit(f'Missing {path.name}; run python3 build_cad_2800443.py first.')
+    source = path.read_text(encoding='utf-8')
+    source = source[source.index('<svg'):]
+    prefix = key.replace('_', '-') + '-' + instance + '-'
+    ids = re.findall(r'\bid="([^"]+)"', source)
+    for old in sorted(set(ids), key=len, reverse=True):
+        new = prefix + old
+        source = source.replace(f'id="{old}"', f'id="{new}"')
+        source = source.replace(f'="#{old}"', f'="#{new}"')
+        source = source.replace(f'url(#{old})', f'url(#{new})')
+    source = re.sub(r'(<svg\b[^>]*?)\swidth="[^"]*"', r'\1', source, count=1)
+    source = re.sub(r'(<svg\b[^>]*?)\sheight="[^"]*"', r'\1', source, count=1)
+    return source.replace('<svg ', f'<svg role="img" aria-label="{esc(key.replace("_", " "))}" ', 1)
+
+
+BASE = '''
+:root{--paper:#F6F4EE;--ink:#1B1F24;--muted:#58615E;--wine:#7A1F1F;--line:#C6C4BA;--wash:#EAE5D6;--teal:#087C83}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Arial,sans-serif}
+h1,h2,h3,p{margin:0}svg{display:block;width:100%;height:100%}a{color:inherit}
+.mono{font-family:Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}.eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--wine)}
+.serif{font-family:Georgia,"Times New Roman",serif;font-weight:400}.muted{color:var(--muted)}
+'''
+BOARD = BASE + '''
+html,body{width:1600px;height:1200px}.board{width:1600px;height:1200px;padding:38px 42px;display:flex;flex-direction:column}
+header{height:126px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--ink);flex-shrink:0}
+header h1{font-size:52px;line-height:1.12;margin-top:10px;letter-spacing:-1.4px}header .stamp{text-align:right;padding-top:3px;font-size:14px;line-height:1.8}.stamp b{font-size:24px;color:var(--wine)}
+footer{margin-top:auto;padding-top:12px;border-top:1px solid var(--ink);display:flex;justify-content:space-between;gap:35px;font-size:11px;line-height:1.5;flex-shrink:0}footer p{max-width:1130px}
+.plan-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;margin-top:23px}
+.plan{min-width:0}.plan+.plan{border-left:1px solid var(--line);padding-left:22px}.plan-head{height:92px;border-bottom:1px solid var(--line)}
+.plan-head .num{font:34px Georgia,serif;color:var(--wine);float:left;margin-right:12px}.plan-head h2{font-size:21px;padding-top:3px;font-weight:500}.level{font-size:11px;margin-top:9px;white-space:nowrap}
+.plan-drawing{height:548px;padding-top:10px}.plan-value{font-size:23px;color:var(--wine);font-weight:500;margin-top:12px}.plan-formula{font-size:11px;line-height:1.5;margin-top:9px}.plan-note{font-size:13px;line-height:1.55;margin-top:12px;max-width:320px}
+.orientation-strip{display:flex;justify-content:space-between;gap:28px;background:var(--wash);padding:18px 22px;margin-top:22px;font-size:14px;line-height:1.6}.orientation-strip strong{display:block;font-size:12px;letter-spacing:1px;color:var(--wine);text-transform:uppercase}
+.study-grid{display:grid;grid-template-columns:395px 610px 463px;gap:24px;margin-top:24px;height:916px}.study-col{min-width:0}.study-col+.study-col{border-left:1px solid var(--line);padding-left:24px}
+.study-col h2{font-size:23px;font-weight:500;line-height:1.2}.study-col .intro{font-size:13px;line-height:1.6;margin-top:9px;color:var(--muted)}
+.survey{height:567px;margin-top:12px}.section{height:385px;margin-top:8px}.core{height:316px;margin-top:12px}.solar-row{display:grid;grid-template-columns:280px 1fr;gap:18px;margin-top:22px;border-top:1px solid var(--line);padding-top:17px}.solar{height:285px}
+.facts{margin-top:15px;font-size:13px;line-height:1.65}.facts div{border-top:1px solid var(--line);padding:9px 0}.facts b{color:var(--wine)}
+.area-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}.area-table th,.area-table td{padding:11px 4px;border-bottom:1px solid var(--line);text-align:left}.area-table th{font-size:11px;color:var(--muted);text-transform:uppercase}.area-table td:last-child,.area-table th:last-child{text-align:right}.area-table td:nth-child(2){text-align:right;font-family:Menlo,monospace}
+.formulas{margin-top:18px;font-size:12px;line-height:1.7}.formulas p{margin-top:10px}.buffer{background:var(--wash);padding:17px;margin-top:20px;font-size:13px;line-height:1.55}.buffer b{display:block;color:var(--wine);font-size:20px;margin-bottom:5px}.small{font-size:11px;line-height:1.6;color:var(--muted)}
 '''
 
 
+def page(title, body, css):
+    return f'<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title><style>{css}</style></head><body>{body}</body></html>\n'
+
+
+def heading(number, title, subtitle):
+    return f'<header><div><p class="eyebrow">Plot 83 · Sector B · New Cairo</p><h1 class="serif">{title}</h1></div><div class="stamp"><b class="mono">{number}</b><br>{subtitle}<br><span class="mono">17.00 × 25.00 m / 425.00 m²</span></div></header>'
+
+
+def footer(number):
+    return f'<footer><p>ARCHITECTURAL CAD SET · Dimensions in metres. North is up on every site plan (17.00 m E–W North Road P4–P1 × 25.00 m N–S East Pedestrian Spine P1–P2). Area calculations deduct the 2.50 × 3.40 m (8.50 m²) open-to-sky central court.</p><span class="mono">PLOT 83 / {number}</span></footer>'
+
+
+def area_table():
+    return '''<table class="area-table"><thead><tr><th>Enclosed level</th><th>Area m²</th><th>Plot ratio</th></tr></thead><tbody><tr><td>Ground</td><td>212.50</td><td>50.00%</td></tr><tr><td>Typical · each ×3</td><td>233.75</td><td>55.00%</td></tr><tr><td>Roof</td><td>106.25</td><td>25.00%</td></tr><tr><td>Above-ground total</td><td>1,020.00</td><td>—</td></tr></tbody></table>'''
+
+
 def board1():
-    pl = all_plans()
-    # remove swept overlay from non-basement plans (only basement has it) – plan_* already scoped
-    cells = [pl['B'], pl['G'], pl['T'], pl['R']]
-    grid = ''.join(f'<div class="c">{c}</div>' for c in cells)
-    return f'''<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sheet A-01 — Master Architectural Floor Plans & Swept-Path Blueprint · Plot 83 New Cairo</title>
-<style>{CSS_COMMON}
-.g{{position:absolute;left:0;top:0;width:1600px;height:1200px;display:grid;grid-template-columns:800px 800px;grid-template-rows:600px 600px;border:0}}
-.c{{width:800px;height:600px;overflow:hidden;position:relative;outline:1px solid #1B1F24;outline-offset:-1px}}
-.c svg{{display:block;width:800px;height:600px}}
-</style></head><body><div class="g">{grid}</div></body></html>'''
+    plans = []
+    for code, title, level, asset, value, formula, note in PLAN_DATA:
+        plans.append(f'<article class="plan"><div class="plan-head"><span class="num">{code}</span><h2>{title}</h2><p class="level mono">{level}</p></div><div class="plan-drawing" data-source="{asset}.svg">{drawing(asset,"board1")}</div><p class="plan-value">{value}</p><p class="plan-formula mono">{formula}</p><p class="plan-note">{note}</p></article>')
+    strip = '''<div class="orientation-strip"><div><strong>North frontage · P4 → P1</strong>17.00 m along the 15 m road</div><div><strong>East depth · P1 → P2</strong>25.00 m along the 10 m pedestrian spine</div><div><strong>West access · P4 → P3</strong>3.00 m ramp strip beside Plot 84</div><div><strong>South garden · P3 → P2</strong>1.50 + 3.00 pool + 1.50 = 6.00 m</div></div>'''
+    body = '<main class="board">' + heading('A–01', 'Four floors. One correct orientation.', 'Architectural plan set / north up') + '<div class="plan-grid">' + ''.join(plans) + '</div>' + strip + footer('A–01') + '</main>'
+    return page('Plot 83 / Four portrait floor plans', body, BOARD)
 
 
 def board2():
-    sec, shade = section_svg()
-    svga, svgb, sc, w, tot = core_options()
-    t1, t2, t3, a = schedule_html()
-    section = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SEC_W} {SEC_H}" width="{SEC_W}" height="{SEC_H}" font-family="Helvetica Neue, Arial, sans-serif">{sec}</svg>'
-    names = {'struct': 'Structural (40%)', 'space': 'Spatial (30%)', 'pass': 'Daylight / passive (15%)', 'cost': 'Cost / buildability (15%)'}
-    srows = ''.join(f'<tr><td>{names[c]}</td><td class="n">{sc["A"][c]}</td><td class="n">{sc["B"][c]}</td></tr>' for c in names)
-    winter_note = 'winter sun reaches the typical-floor glazing' if not dict(shade)['winter'] else 'winter sun blocked'
-    summer_note = 'summer noon sun is stopped by the 0.9 m brise-soleil' if dict(shade)['summer'] else 'summer sun reaches glazing'
-    return f'''<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sheet A-02 — Passive Design Analysis, Core Alternative Study & Zero-Waste Matrix · Plot 83 New Cairo</title>
-<style>{CSS_COMMON}
-.hd{{position:absolute;left:0;top:0;width:1600px;height:66px;background:#1B1F24;color:#F6F4EE;display:flex;align-items:center;padding:0 22px;gap:24px}}
-.hd h1{{font-size:21px;font-weight:800;letter-spacing:.2px}}
-.hd span{{font:600 12px Menlo,monospace;color:#D9C58B;margin-left:auto}}
-.sec{{position:absolute;left:10px;top:72px;width:800px;height:840px}}
-.leg{{position:absolute;left:10px;top:918px;width:800px;height:274px;border:1.5px solid #1B1F24;padding:10px 14px;font-size:12.5px;line-height:1.5;background:#FBFAF5}}
-.leg h3{{font-size:13px;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}}
-.leg table{{width:100%;border-collapse:collapse;font-size:12px;margin:4px 0}}
-.leg td,.leg th{{border:1px solid #B9B2A0;padding:2px 6px;text-align:left}}
-.leg th{{background:#EAE5D6}}
-.k{{display:inline-block;width:22px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}}
-.core{{position:absolute;left:820px;top:72px;width:770px;height:384px}}
-.core .o{{position:absolute;top:0;width:380px;height:384px;border:1.5px solid #1B1F24;background:#FBFAF5}}
-.core .o h2{{font-size:14px;padding:6px 10px;background:#EAE5D6;border-bottom:1.5px solid #1B1F24}}
-.core .o p{{font-size:11.5px;line-height:1.38;padding:4px 10px}}
-.sch{{position:absolute;left:820px;top:464px;width:770px;height:730px;border:1.5px solid #1B1F24;background:#FBFAF5;padding:8px 12px;overflow:hidden}}
-.sch h2{{font-size:14px;margin:2px 0 4px;text-transform:uppercase;letter-spacing:.4px}}
-table.t{{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px}}
-table.t td,table.t th{{border:1px solid #B9B2A0;padding:1.5px 6px;text-align:left;vertical-align:top}}
-table.t th{{background:#EAE5D6;font-size:11px}}
-.n{{text-align:right!important;font-family:Menlo,monospace}}
-.ok{{color:#1E7A3B;font-weight:800}} .warn{{color:#B03A2E;font-weight:800}}
-</style></head><body>
-<div class="hd"><h1>SHEET A-02 · PASSIVE DESIGN ANALYSIS · CORE ALTERNATIVE STUDY · ZERO-WASTE MATRIX</h1><span>PLOT 83 · NEW CAIRO · {PW:.0f} × {PH:.0f} m = {PLOT_AREA:.2f} m² · LAT 30° N</span></div>
-<div class="sec">{section}</div>
-<div class="leg"><h3>Section A-A (N road → reception → courtyard shaft → loggia → pool buffer → pool) · sun &amp; wind</h3>
-<div><span class="k" style="border-color:#1E78C8"></span>Prevailing north wind: enters every reception, crosses the courtyard, leaves through south balcony / loggia.
-<span class="k" style="border-color:#C0392B;margin-left:12px"></span>Courtyard stack exhausts hot air at roof.</div>
-<table><tr><th>Solar angle (noon, 30° N)</th><th>Altitude</th><th>Result on south glazing (0.9 m brise-soleil / 1.0 m slab overhang)</th></tr>
-<tr><td style="color:#E8710A;font-weight:800">Summer solstice</td><td class="n">83.44°</td><td>shadow 0.9 × tan 83.44° = 8.0 m ≫ glazing height: fully shaded</td></tr>
-<tr><td style="color:#C9A100;font-weight:800">Equinox</td><td class="n">60.00°</td><td>0.9 × tan 60° = 1.56 m: upper glazing shaded</td></tr>
-<tr><td style="color:#2B7BB9;font-weight:800">Winter solstice</td><td class="n">36.56°</td><td>0.9 × tan 36.56° = 0.67 m: low sun enters, passive heat gain</td></tr></table>
-<div>Dashed ray ✕ = stopped by overhang · solid ray = reaches glass. Check: {esc(summer_note)}; {esc(winter_note)}.</div></div>
-<div class="core">
-<div class="o" style="left:0"><h2>CORE OPTION A — stair wraps the lift</h2>{svga}
-<p>Closed RC box (4 continuous walls) around a 2.0 × 2.0 shaft; three flights, one lobby. Strong torsion core, but 19.36 m² and the stair cannot take a façade window.</p></div>
-<div class="o" style="left:390px"><h2>CORE OPTION B — lift beside the stair  ✔ drawn on plans</h2>{svgb}
-<p>Dogleg stair 2.7 × 3.9 m plus lift 2.0 × 2.0 m: 18.33 m² (−1.03 m²/level, −5.2 m² over 5 levels). Stair sits on the north-west façade → daylight and smoke vent. Needs two shear-wall groups.</p></div></div>
-<div class="sch">
-<h2>Core scoring (preliminary, for structural engineer to confirm) — A {tot["A"]:.2f} · B {tot["B"]:.2f}  → Option B</h2>
-<table class="t" style="width:48%;float:left;margin-right:2%"><tr><th>Criterion (weight)</th><th>A</th><th>B</th></tr>{srows}<tr><th>Weighted total</th><th class="n">{tot["A"]:.2f}</th><th class="n">{tot["B"]:.2f}</th></tr></table>
-<table class="t" style="width:50%"><tr><th>Level</th><th>Elev.</th><th>GFA m²</th><th>% plot</th><th>Brief</th><th></th></tr>{t1}</table>
-<h2 style="clear:both">Compliance schedule</h2><table class="t"><tr><th>Requirement</th><th>Provision</th><th>Status</th></tr>{t2}</table>
-<h2>Zero-waste measures</h2><table class="t"><tr><th>Measure</th><th>Design response</th></tr>{t3}</table></div>
-</body></html>'''
+    left = f'''<section class="study-col"><p class="eyebrow">01 / Survey basis</p><h2 style="margin-top:8px">17 m frontage.<br>25 m depth.</h2><p class="intro">Boundary names and the P4–P2 diagonal follow the attached Arabic survey.</p><div class="survey">{drawing('site_survey','board2')}</div><div class="facts"><div><b>P4 (NW)</b> (0, 25) &nbsp; <b>P1 (NE)</b> (17, 25)</div><div><b>P3 (SW)</b> (0, 0) &nbsp; <b>P2 (SE)</b> (17, 0)</div><div><b>Diagonal</b> √(17² + 25²) = 30.23 m</div></div><p class="small" style="margin-top:10px">Cartesian coordinates: +X east, +Y north.<br>Road north · Plot 10 south · Plot 84 west · Spine / Plot 82 east.</p></section>'''
+    center = f'''<section class="study-col"><p class="eyebrow">02 / Building & environment</p><h2 style="margin-top:8px">Section through the south garden</h2><div class="section">{drawing('section_aa','board2')}</div><div class="buffer"><b>1.50 m + 3.00 m + 1.50 m</b>Building wall → insulated backfill → pool → south fence. The 6.00 × 3.00 m pool dimension is its outer structural footprint; shell thickness lies within it.</div><div class="solar-row"><div class="solar">{drawing('passive_sun_wind_diagram','board2')}</div><div><h2 style="font-size:20px">Passive intent</h2><p class="intro">North reception receives prevailing breezes. East-facing bedrooms overlook the pedestrian spine.</p><p class="intro">The 2.50 × 3.40 m open court brings light and an exhaust path into the plan.</p><p class="small" style="margin-top:12px">Calculated for New Cairo (30.03° N): west solar mashrabiya, east morning light, and north-to-court cross-ventilation.</p></div></div></section>'''
+    right = f'''<section class="study-col"><p class="eyebrow">03 / Core & area control</p><h2 style="margin-top:8px">A consistent vertical core</h2><div class="core">{drawing('core_options_comparison','board2')}</div><p class="small">Side-by-side comparison at identical scale: Option B saves 9.80 m² per floor plate with aligned shear walls.</p>{area_table()}<div class="formulas"><p><b>Ground</b><br><span class="mono">13.00 × 17.00 − 2.50 × 3.40<br>= 212.50 m²</span></p><p><b>Typical · each floor</b><br><span class="mono">13.75 × (242.25 / 13.75) − 8.50<br>= 233.75 m²</span></p><p class="small">Exact depth: 17.6181818… m; 17.62 m is the rounded drawing dimension.</p><p><b>Roof</b><br><span class="mono">12.50 × 8.50 = 106.25 m²</span></p></div></section>'''
+    body = '<main class="board">' + heading('A–02', 'The survey sets the architecture.', 'Site, section & exact area reconciliation') + '<div class="study-grid">' + left + center + right + '</div>' + footer('A–02') + '</main>'
+    return page('Plot 83 / Survey, section and area reconciliation', body, BOARD)
 
 
-# ------------------------------------------------------------------ index
+WEB = BASE + '''
+html{scroll-behavior:smooth}body{line-height:1.5}button,input{font:inherit}button,a,input{outline-offset:5px}button{cursor:pointer}
+.site-header{max-width:1440px;margin:auto;padding:28px 32px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{font-weight:700;text-decoration:none;letter-spacing:1px}.site-header nav{display:flex;gap:28px;font-size:13px}.site-header nav a{text-decoration:none}
+main{max-width:1440px;margin:auto;padding:0 32px}.hero{padding:55px 0 36px;display:flex;justify-content:space-between;align-items:flex-end;gap:48px}.hero h1{font-size:clamp(38px,5vw,68px);line-height:1.07;letter-spacing:-2px;margin:14px 0 22px}.hero p{max-width:690px;color:var(--muted);font-size:17px}.hero .land{border-left:1px solid var(--line);padding-left:30px;min-width:220px}.land b{font-size:40px;font-weight:400;color:var(--wine)}
+.review-section{padding:38px 0;border-top:1px solid var(--ink);scroll-margin-top:20px}.section-title{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:25px}.section-title h2{font:34px Georgia,serif;margin-top:8px}.section-title p{font-size:13px;color:var(--muted);max-width:400px}
+.tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);gap:4px}.tab{border:0;background:transparent;padding:13px 22px;color:var(--muted);border-bottom:3px solid transparent}.tab[aria-selected=true]{border-bottom-color:var(--wine);color:var(--wine);font-weight:700}.tab:focus-visible{outline:2px solid var(--wine)}
+.plan-view[hidden]{display:none}.plan-view{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:36px;padding-top:26px}.plan-canvas{height:920px;min-height:550px;border:1px solid var(--line);background:#F9F7F1;overflow:auto}.plan-canvas .vector{height:100%;min-width:100%}.plan-aside h3{font:29px Georgia,serif}.plan-aside .elevation{font-size:12px;margin:12px 0 22px;color:var(--wine)}.plan-aside .area{font-size:25px;margin:20px 0 10px}.plan-aside p{font-size:14px;line-height:1.7}.plan-aside .formula{font-size:12px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:20px}.links{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.links a{font-size:12px;text-underline-offset:4px}.zoom{display:flex;align-items:center;gap:12px;font-size:13px;padding-top:12px}.zoom input{width:180px}
+.survey-grid{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1.1fr);gap:55px}.site-vector{height:650px}.survey-copy{padding-top:25px}.survey-copy h3{font:32px Georgia,serif;margin-bottom:20px}.survey-copy p{font-size:15px;margin:16px 0}.bounds{border-collapse:collapse;width:100%;font-size:14px;margin:20px 0}.bounds td{padding:12px 0;border-bottom:1px solid var(--line)}.bounds td:first-child{font-weight:700;width:30%}.buffer-note{background:var(--wash);padding:22px;margin-top:28px}.buffer-note b{font-size:23px;color:var(--wine)}
+.section-vector{height:700px;max-width:1060px;margin:auto}.schedule-grid{display:grid;grid-template-columns:1fr 1fr;gap:55px}.area-table{width:100%;border-collapse:collapse;font-size:15px}.area-table td,.area-table th{padding:16px 9px;border-bottom:1px solid var(--line);text-align:left}.area-table td:nth-child(2),.area-table td:last-child{text-align:right;font-variant-numeric:tabular-nums}.area-table th{font-size:12px;color:var(--muted);font-weight:500}.calcs p{margin-bottom:18px;font-size:14px}.calcs b{display:block;margin-bottom:6px;color:var(--wine)}.calcs .mono{font-size:13px}.footnote{font-size:12px;color:var(--muted);margin-top:24px;max-width:900px}.diagram-pair{display:grid;grid-template-columns:1fr 1fr;gap:40px}.diagram-pair .vector{height:520px}
+.gallery{display:grid;grid-template-columns:1fr 1fr;gap:30px}.gallery a{text-decoration:none}.gallery img{width:100%;height:auto;border:1px solid var(--line);display:block}.gallery span{font-size:13px;display:block;padding-top:10px}.downloads{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.download{padding:25px;border-top:3px solid var(--wine);background:var(--wash);text-decoration:none}.download strong{display:block;font:25px Georgia,serif}.download span{display:block;font-size:13px;margin-top:10px}.download:hover{background:#E0DAC9}.site-footer{max-width:1376px;margin:35px auto 0;padding:25px 0;border-top:1px solid var(--ink);font-size:12px;color:var(--muted)}
+@media(max-width:850px){.hero{display:block}.hero .land{margin-top:25px;padding:0;border:0}.site-header nav{gap:15px}.plan-view{grid-template-columns:1fr}.plan-aside{order:-1}.plan-canvas{height:800px}.survey-grid,.schedule-grid,.diagram-pair{grid-template-columns:1fr}.downloads{grid-template-columns:1fr}.section-vector{height:550px}.diagram-pair .vector{height:460px}.site-footer{margin-left:32px;margin-right:32px}.section-title{display:block}.section-title p{margin-top:12px}}
+@media(max-width:520px){main{padding:0 18px}.site-header{padding:20px 18px;align-items:flex-start}.site-header nav{gap:12px;font-size:11px}.hero{padding-top:32px}.hero h1{letter-spacing:-1px}.hero p{font-size:15px}.land b{font-size:30px}.tab{padding:12px 11px;font-size:12px}.gallery{grid-template-columns:1fr}.plan-canvas{height:640px}.site-vector{height:550px}.section-vector{height:380px}.bounds{font-size:12px}.site-footer{margin:30px 18px 0}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+'''
+
+
 def index_html():
-    pl = all_plans(passive=True)
-    svga, svgb, sc, w, tot = core_options()
-    t1, t2, t3, a = schedule_html()
-    names = {'B': 'Basement −3.20', 'G': 'Ground +0.45', 'T': 'Typical +3.75', 'R': 'Roof +13.65'}
-    tabs = ''.join(f'<button class="tab{" on" if k=="B" else ""}" data-k="{k}">{names[k]}</button>' for k in 'BGTR')
-    plans = ''.join(f'<div class="pv{" on" if k=="B" else ""}" id="pv{k}">{pl[k]}</div>' for k in 'BGTR')
-    sec, _ = section_svg()
-    section = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SEC_W} {SEC_H}" style="width:100%;max-width:760px" font-family="Helvetica Neue, Arial, sans-serif">{sec}</svg>'
-    boards = ''.join(f'<a class="bd" href="{f}" target="_blank"><div class="fr"><iframe src="{f}" scrolling="no" loading="lazy"></iframe></div><span>{t}</span></a>' for f, t in (
-        ('board1-claude.html', 'A-01 Claude · Master plans & swept path'), ('board2-claude.html', 'A-02 Claude · Passive + core study + matrix'),
-        ('board1-codex.html', 'A-01 Codex'), ('board2-codex.html', 'A-02 Codex')))
-    dls = ''.join(f'<a class="dl" href="exports/{f}" download>⬇ {f}<small>{d}</small></a>' for f, d in (
-        ('Plot83_NewCairo_CAD_Package.zip', 'DXF + PDF + sources'), ('Plot83_NewCairo_B_G_3_R_Master.dxf', 'AutoCAD DXF · B / G / 3×T / R'), ('Plot83_NewCairo_Engineering_Set.pdf', 'Engineering drawing set')))
-    return f'''<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Plot 83 New Cairo — CAD &amp; Passive Design Explorer</title>
-<style>
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:"Helvetica Neue",Arial,sans-serif;background:#F6F4EE;color:#1B1F24}}
-header{{background:#1B1F24;color:#F6F4EE;padding:14px 28px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}}
-header h1{{font-size:20px}} header span{{font:600 12px Menlo,monospace;color:#D9C58B}}
-nav{{display:flex;gap:6px;padding:10px 28px;border-bottom:1.5px solid #1B1F24;background:#EAE5D6;flex-wrap:wrap}}
-nav button,.tab{{font:700 13px inherit;padding:7px 14px;border:1.5px solid #1B1F24;background:#FBFAF5;cursor:pointer}}
-nav button.on,.tab.on{{background:#1B1F24;color:#F6F4EE}}
-main{{padding:16px 28px 40px;max-width:1500px;margin:auto}}
-.sec{{display:none}} .sec.on{{display:block}}
-.bar{{display:flex;gap:18px;align-items:center;margin:8px 0 12px;flex-wrap:wrap;font-size:13px}}
-.bar label{{display:flex;gap:6px;align-items:center;font-weight:700;cursor:pointer}}
-.pv{{display:none;border:1.5px solid #1B1F24;background:#fff}} .pv.on{{display:block}}
-.pv svg{{width:100%;height:auto;display:block}}
-.noswept .swept,.nopass .passive{{display:none}}
-.flow{{animation:dash 1.4s linear infinite}} @keyframes dash{{to{{stroke-dashoffset:-34}}}}
-.grid2{{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px}}
-.card{{border:1.5px solid #1B1F24;background:#FBFAF5;padding:10px}} .card h3{{font-size:14px;margin-bottom:6px}} .card svg{{width:100%;height:auto}}
-table.t{{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}} table.t td,table.t th{{border:1px solid #B9B2A0;padding:3px 7px;text-align:left}} table.t th{{background:#EAE5D6}}
-.n{{text-align:right!important;font-family:Menlo,monospace}} .ok{{color:#1E7A3B;font-weight:800}} .warn{{color:#B03A2E;font-weight:800}}
-.boards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px}}
-.bd{{text-decoration:none;color:inherit;display:block;border:1.5px solid #1B1F24;background:#FBFAF5}}
-.fr{{width:100%;aspect-ratio:4/3;overflow:hidden;position:relative}} .fr iframe{{width:1600px;height:1200px;border:0;transform-origin:0 0;transform:scale(var(--s,.3));pointer-events:none}}
-.bd span{{display:block;padding:8px 10px;font-weight:700;font-size:13px;border-top:1.5px solid #1B1F24}}
-.dls{{display:flex;gap:14px;flex-wrap:wrap}} .dl{{display:block;padding:14px 18px;border:1.5px solid #1B1F24;background:#1B1F24;color:#F6F4EE;text-decoration:none;font-weight:800}} .dl small{{display:block;font-weight:500;color:#D9C58B;margin-top:3px}}
-</style></head><body>
-<header><h1>Plot No. 83 · New Cairo — CAD &amp; Passive Design Explorer</h1><span>{PW:.2f} × {PH:.2f} m = {PLOT_AREA:.2f} m² · diagonal {DIAG:.2f} m · Basement + Ground + 3 Typical + Roof</span></header>
-<nav><button class="tab on" data-s="plans">CAD plans</button><button class="tab" data-s="passive">Section &amp; passive</button><button class="tab" data-s="core">Core A vs B</button><button class="tab" data-s="sched">Area &amp; compliance</button><button class="tab" data-s="boards">Presentation boards</button><button class="tab" data-s="dl">Downloads</button></nav>
-<main>
-<div class="sec on" id="s-plans"><div class="bar">{tabs}<label><input type="checkbox" id="tSwept" checked> Swept-path arcs (R 3.2 / 5.8 m)</label><label><input type="checkbox" id="tPass"> Sun / wind overlay</label></div><div id="pvs" class="noswept0 nopass">{plans}</div></div>
-<div class="sec" id="s-passive"><div class="card"><h3>Section A-A — N road → reception → courtyard → pool · animated airflow &amp; solar angles (30° N)</h3>{section}</div></div>
-<div class="sec" id="s-core"><div class="grid2"><div class="card"><h3>Option A — stair wraps the lift (19.36 m²)</h3>{svga}</div><div class="card"><h3>Option B — lift beside stair (18.33 m²) — selected</h3>{svgb}</div></div>
-<table class="t"><tr><th>Criterion (weight)</th><th>A</th><th>B</th></tr><tr><td>Structural (40%)</td><td class="n">{sc["A"]["struct"]}</td><td class="n">{sc["B"]["struct"]}</td></tr><tr><td>Spatial (30%)</td><td class="n">{sc["A"]["space"]}</td><td class="n">{sc["B"]["space"]}</td></tr><tr><td>Daylight / passive (15%)</td><td class="n">{sc["A"]["pass"]}</td><td class="n">{sc["B"]["pass"]}</td></tr><tr><td>Cost / buildability (15%)</td><td class="n">{sc["A"]["cost"]}</td><td class="n">{sc["B"]["cost"]}</td></tr><tr><th>Weighted</th><th class="n">{tot["A"]:.2f}</th><th class="n">{tot["B"]:.2f}</th></tr></table><p style="font-size:12px">Preliminary schematic judgement; structural engineer to confirm.</p></div>
-<div class="sec" id="s-sched"><table class="t"><tr><th>Level</th><th>Elev.</th><th>GFA m²</th><th>% plot</th><th>Brief</th><th></th></tr>{t1}</table><table class="t"><tr><th>Requirement</th><th>Provision</th><th>Status</th></tr>{t2}</table><table class="t"><tr><th>Zero-waste measure</th><th>Design response</th></tr>{t3}</table></div>
-<div class="sec" id="s-boards"><div class="boards">{boards}</div></div>
-<div class="sec" id="s-dl"><div class="dls">{dls}</div></div>
-</main>
+    tabs = ''.join(f'<button class="tab" role="tab" id="tab-{code}" aria-controls="plan-{code}" aria-selected="{str(i==0).lower()}" tabindex="{0 if i==0 else -1}" data-plan="{code}">{title}</button>' for i,(code,title,*_) in enumerate(PLAN_DATA))
+    panels = []
+    for i,(code,title,level,asset,value,formula,note) in enumerate(PLAN_DATA):
+        panels.append(f'<section class="plan-view" id="plan-{code}" role="tabpanel" aria-labelledby="tab-{code}" {"hidden" if i else ""}><div class="plan-canvas"><div class="vector">{drawing(asset,"web")}</div></div><aside class="plan-aside"><h3>{title}</h3><p class="elevation mono">{level}</p><p class="area">{value}</p><p class="formula mono">{formula}</p><p>{note}</p><p style="margin-top:18px" class="muted">North is up. The 17.00 m frontage is horizontal; the 25.00 m depth is vertical.</p><div class="links"><a href="exports/{asset}.svg" download>Download vector SVG</a><a href="exports/{asset}.png" download>Download PNG</a></div></aside></section>')
+    gallery = ''.join(f'<a href="board{n}-{author}.html" target="_blank" rel="noopener"><img src="board{n}-{author}.jpg" width="3200" height="2400" loading="lazy" alt="{label}"><span>{label} · open full sheet</span></a>' for n,author,label in [(1,'claude','A–01 · Four floor plans'),(2,'claude','A–02 · Survey, section & exact areas'),(1,'codex','Engineering sheet 01 · Parametric floor plans'),(2,'codex','Engineering sheet 02 · Solar & core studies')])
+    body = f'''<div class="site-header"><a class="brand" href="#">PLOT 83</a><nav aria-label="Main"><a href="#plans">Plans</a><a href="#survey">Survey</a><a href="#areas">Areas</a><a href="#downloads">Downloads</a></nav></div>
+<main><section class="hero"><div><p class="eyebrow">Sector B · New Cairo · Architectural study</p><h1 class="serif">17 m north frontage.<br>25 m depth.</h1><p>A north-facing house arranged around a light court, with east-facing bedrooms, a western access ramp and a six-metre-deep south pool garden.</p></div><div class="land"><b class="serif">425.00 m²</b><p>Plot 83<br>Basement + ground + 3 typical floors + roof</p></div></section>
+<section class="review-section" id="plans"><div class="section-title"><div><p class="eyebrow">01 / Floor plans</p><h2>Every level, in the survey frame</h2></div><p>All drawings use one common geometry source. Room dimensions and areas are labeled in the plans.</p></div><div class="tabs" role="tablist" aria-label="Floor level">{tabs}</div><label class="zoom">Drawing zoom <input id="zoom" type="range" min="100" max="200" step="25" value="100" aria-label="Drawing zoom percentage"><output id="zoom-value">100%</output></label>{''.join(panels)}</section>
+<section class="review-section" id="survey"><div class="section-title"><div><p class="eyebrow">02 / Survey reference</p><h2>Boundaries, coordinates and garden</h2></div><p>Mapped from the employer’s attached Arabic survey; north is the top edge.</p></div><div class="survey-grid"><div class="site-vector">{drawing('site_survey','web')}</div><div class="survey-copy"><h3>17.00 × 25.00 m</h3><table class="bounds"><tr><td>North · P4–P1</td><td>17.00 m · 15 m-wide road</td></tr><tr><td>East · P1–P2</td><td>25.00 m · 10 m pedestrian spine / Plot 82</td></tr><tr><td>West · P4–P3</td><td>25.00 m · Neighbor Plot 84 / 3.00 m ramp strip</td></tr><tr><td>South · P3–P2</td><td>17.00 m · Neighbor Plot 10</td></tr></table><p class="mono">P4 (0,25) &nbsp; P1 (17,25)<br>P3 (0,0) &nbsp; P2 (17,0)<br>P4–P2 = √(17² + 25²) ≈ 30.23 m</p><div class="buffer-note"><b>1.50 + 3.00 + 1.50 = 6.00 m</b><p>South wall → 1.50 m insulated backfill → 3.00 m pool depth in plan → 1.50 m south-fence clearance.</p><p>The pool occupies a 6.00 × 3.00 m outer structural footprint. The shell is contained within that envelope; these are not clear-water dimensions.</p></div></div></div></section>
+<section class="review-section" id="section"><div class="section-title"><div><p class="eyebrow">03 / Section</p><h2>From the north road to the south pool</h2></div><p>Roof level +13.65 m; basement −3.20 m. Waterproofing, retaining structures and ramp transitions need detailed design.</p></div><div class="section-vector">{drawing('section_aa','web')}</div></section>
+<section class="review-section" id="areas"><div class="section-title"><div><p class="eyebrow">04 / Area schedule</p><h2>Exact areas, explicit deductions</h2></div></div><div class="schedule-grid">{area_table()}<div class="calcs"><p><b>Ground floor</b><span class="mono">13.00 × 17.00 = 221.00 m²<br>221.00 − (2.50 × 3.40) = 212.50 m²</span></p><p><b>Typical floors · each</b><span class="mono">13.75 × (242.25 / 13.75) = 242.25 m²<br>242.25 − 8.50 = 233.75 m²</span><br>Depth is exactly 17.6181818… m; 17.62 m is a rounded label.</p><p><b>Roof floor</b><span class="mono">12.50 × 8.50 = 106.25 m²</span></p></div></div><p class="footnote">The 8.50 m² court is open to the sky. Enclosed areas and plot ratios are geometric calculations; local authority counting rules and statutory compliance are not certified by this schematic package.</p></section>
+<section class="review-section" id="studies"><div class="section-title"><div><p class="eyebrow">05 / Design studies</p><h2>Sun, wind and the vertical core</h2></div><p>Passive strategies and core alternatives are conceptual. No unverified performance gain is claimed.</p></div><div class="diagram-pair"><div class="vector">{drawing('passive_sun_wind_diagram','web')}</div><div class="vector">{drawing('core_options_comparison','web')}</div></div></section>
+<section class="review-section" id="boards"><div class="section-title"><div><p class="eyebrow">06 / Presentation set</p><h2>Four review sheets</h2></div><p>Open a sheet for the full vector presentation; downloadable CAD and PDF follow below.</p></div><div class="gallery">{gallery}</div></section>
+<section class="review-section" id="downloads"><div class="section-title"><div><p class="eyebrow">07 / Files</p><h2>Inspect the drawing package</h2></div></div><div class="downloads"><a class="download" href="exports/Plot83_NewCairo_CAD_Package.zip" download><strong>Complete package</strong><span>ZIP · CAD, vector drawings, images and validation</span></a><a class="download" href="exports/Plot83_NewCairo_B_G_3_R_Master.dxf" download><strong>AutoCAD master</strong><span>DXF · basement, ground, typical, roof and studies</span></a><a class="download" href="exports/Plot83_NewCairo_Engineering_Set.pdf" download><strong>Engineering sheets</strong><span>PDF · complete vector drawing set</span></a></div><p class="footnote">Six parking bays, a 6.00 m maneuvering aisle and Ri 3.20 / Ro 5.80 m turning envelopes are drawn. These arcs do not establish complete vehicle accessibility or a certified swept-path simulation. See the package’s engineering validation for remaining constraints.</p></section></main>
+<footer class="site-footer">PLOT 83 · SECTOR B · NEW CAIRO &nbsp; / &nbsp; Schematic architectural study. Dimensions in metres. North up.</footer>
 <script>
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-$$('nav .tab').forEach(b=>b.onclick=()=>{{$$('nav .tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');$$('.sec').forEach(x=>x.classList.remove('on'));$('#s-'+b.dataset.s).classList.add('on');fit()}});
-$$('.bar .tab').forEach(b=>b.onclick=()=>{{$$('.bar .tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');$$('.pv').forEach(x=>x.classList.remove('on'));$('#pv'+b.dataset.k).classList.add('on')}});
-function sw(){{const p=$('#pvs');p.classList.toggle('noswept',!$('#tSwept').checked);p.classList.toggle('nopass',!$('#tPass').checked)}}
-$('#tSwept').onchange=sw;$('#tPass').onchange=sw;sw();
-function fit(){{$$('.fr').forEach(f=>f.firstChild.style.setProperty('--s',f.clientWidth/1600))}}
-addEventListener('resize',fit);fit();
-</script></body></html>'''
+const tabs=[...document.querySelectorAll('[role="tab"]')];
+function selectTab(tab){{tabs.forEach(t=>{{const active=t===tab;t.setAttribute('aria-selected',String(active));t.tabIndex=active?0:-1;document.getElementById(t.getAttribute('aria-controls')).hidden=!active;}});}}
+tabs.forEach((tab,i)=>{{tab.addEventListener('click',()=>selectTab(tab));tab.addEventListener('keydown',e=>{{let j;if(e.key==='ArrowRight')j=(i+1)%tabs.length;else if(e.key==='ArrowLeft')j=(i+tabs.length-1)%tabs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=tabs.length-1;else return;e.preventDefault();selectTab(tabs[j]);tabs[j].focus();}});}});
+document.getElementById('zoom').addEventListener('input',e=>{{const v=Number(e.target.value);document.getElementById('zoom-value').value=v+'%';document.querySelectorAll('.plan-canvas .vector').forEach(el=>{{el.style.height=v+'%';el.style.width=v+'%';}});}});
+</script>'''
+    return page('Plot 83 / 17 m north frontage × 25 m depth', body, WEB)
 
 
 def main():
-    (HERE / 'board1-claude.html').write_text(board1(), encoding='utf-8')
-    (HERE / 'board2-claude.html').write_text(board2(), encoding='utf-8')
-    (HERE / 'index.html').write_text(index_html(), encoding='utf-8')
-    a = area_tables()
-    print('areas', {k: round(v, 2) for k, v in a.items()}, 'diag', round(DIAG, 2))
+    for filename, content in [('board1-claude.html',board1()),('board2-claude.html',board2()),('index.html',index_html())]:
+        (HERE / filename).write_text(content,encoding='utf-8')
+        print(f'Generated {filename} from canonical CAD SVGs')
 
 
 if __name__ == '__main__':
