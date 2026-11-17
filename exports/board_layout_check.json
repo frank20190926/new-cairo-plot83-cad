@@ -1,0 +1,62 @@
+[
+  {
+    "viewport": [
+      1600,
+      1200
+    ],
+    "board": {
+      "x": 0,
+      "y": 0,
+      "w": 1600,
+      "h": 1200
+    },
+    "errors": [],
+    "images": [],
+    "board_name": "board1-claude"
+  },
+  {
+    "viewport": [
+      1600,
+      1200
+    ],
+    "board": {
+      "x": 0,
+      "y": 0,
+      "w": 1600,
+      "h": 1200
+    },
+    "errors": [],
+    "images": [],
+    "board_name": "board2-claude"
+  },
+  {
+    "viewport": [
+      1600,
+      1200
+    ],
+    "board": {
+      "x": 0,
+      "y": 0,
+      "w": 1600,
+      "h": 1200
+    },
+    "errors": [],
+    "images": [],
+    "board_name": "board1-codex"
+  },
+  {
+    "viewport": [
+      1600,
+      1200
+    ],
+    "board": {
+      "x": 0,
+      "y": 0,
+      "w": 1600,
+      "h": 1200
+    },
+    "errors": [],
+    "images": [],
+    "board_name": "board2-codex"
+  }
+]

@@ -1,0 +1,206 @@
+{
+  "ENGINEERING_NOTES.md": {
+    "bytes": 3789,
+    "sha256": "251307fb892ce276ff90003db1d848df7ef052e82b4b5c6fd305dc1ab98ebe2c"
+  },
+  "board1-claude.html": {
+    "bytes": 120864,
+    "sha256": "5e724c5be29a11897d2c04d94b003d28ec59d9733d0d36608698b14ba88d7bb6"
+  },
+  "board1-claude.jpg": {
+    "bytes": 2637371,
+    "sha256": "3b4c998bfed00d2af71ccf509eff0a2d3520f22159d0484a733a39ce87e21497"
+  },
+  "board1-codex.html": {
+    "bytes": 710668,
+    "sha256": "5c4dd65cb94de334616bc818194f4f32a774885c92ea12bd0bad4e22747dce6a"
+  },
+  "board1-codex.jpg": {
+    "bytes": 1446811,
+    "sha256": "327f4635829a60b1d3df0c36e6873657fd83db233cbacc911a866de88f3e5eda"
+  },
+  "board2-claude.html": {
+    "bytes": 25824,
+    "sha256": "49ddef7646938aa5d08ed228bf6b2690c0f0ad4873a696f09508633576212805"
+  },
+  "board2-claude.jpg": {
+    "bytes": 1819901,
+    "sha256": "5da86ec679e09379c0603f1dc26578176edd0c8f756ea4d76ebd40446c1f0e36"
+  },
+  "board2-codex.html": {
+    "bytes": 334198,
+    "sha256": "e0fc2153a209de5fe6b3833b4609e90773bf7f7e7131dfe70a27bd9210ea076c"
+  },
+  "board2-codex.jpg": {
+    "bytes": 1174121,
+    "sha256": "108c4395fd621059a38219118c6bd0723af958d17c6b68c53bee3c751ac8a58f"
+  },
+  "brief_assets/.png": {
+    "bytes": 533477,
+    "sha256": "72d8c8b439cb15f5fdae96c71f79d7a8063e0a0bc129bd7681c159e786adf4e6"
+  },
+  "build_cad_2800443.py": {
+    "bytes": 57703,
+    "sha256": "5cab110186c8eb329c8aaff2a30e8aa02098e6865e7795b519744aa659bdd964"
+  },
+  "build_claude_boards.py": {
+    "bytes": 64048,
+    "sha256": "241d432127472de1a48e39f1fa81edfe2796c8497bc5b241f399da6a87048fc2"
+  },
+  "exports/Plot83_NewCairo_B_G_3_R_Master.dxf": {
+    "bytes": 322362,
+    "sha256": "e8a1c594522aae4045cacc806dd0292a977b5e8f1d97f27e1b41c4ea75b7e045"
+  },
+  "exports/Plot83_NewCairo_Engineering_Set.pdf": {
+    "bytes": 190552,
+    "sha256": "226196dfc0f6abe6fed195cc0c0021100b1ebbf01d40d512b28f2f8c24de2df2"
+  },
+  "exports/area_and_constraints.png": {
+    "bytes": 154753,
+    "sha256": "3cf472c55af8d8e012ae2e37991ec4cbaadbefd34bbb907cee7a1d194cd57a8e"
+  },
+  "exports/area_and_constraints.svg": {
+    "bytes": 112385,
+    "sha256": "7a55cda4735a75d682aa647352bd8398e88120cf34e8db9259a2121bc724f9b1"
+  },
+  "exports/board_layout_check.json": {
+    "bytes": 841,
+    "sha256": "1bf60bdf99fc9b880e02fd6ca704f50c7d90eb754eac6cafd46c2d0d5e2b46fc"
+  },
+  "exports/coordinate_readback.json": {
+    "bytes": 826,
+    "sha256": "2bf96760270ffbe6c6d02ff2f0fdc43fd41404bfee75dd1a3ee9a72c25b4a028"
+  },
+  "exports/core_options_comparison.png": {
+    "bytes": 88763,
+    "sha256": "f6717990dd373c9652aaf2f8445d83493ce326ff3aec2d5768bf31d225eaa3f6"
+  },
+  "exports/core_options_comparison.svg": {
+    "bytes": 110150,
+    "sha256": "a0cb7dca05b95c3111f258284c5c7b28af090acde15b293bfc667c23be837b11"
+  },
+  "exports/engineering_validation.json": {
+    "bytes": 12758,
+    "sha256": "c89b4869c0a4a1ce472ed8dec5036b18826c5ff17bc48e6c7c7a83afd711293a"
+  },
+  "exports/parameters.json": {
+    "bytes": 853,
+    "sha256": "265881d90a85fade51a49854e5efc557aa683035c9471722c04632454edb15b5"
+  },
+  "exports/passive_sun_wind_diagram.png": {
+    "bytes": 135092,
+    "sha256": "a9a5bb2e4d5c06e2f38fafa051f410d7248c9cf943c6725a0408aeb7ec43d764"
+  },
+  "exports/passive_sun_wind_diagram.svg": {
+    "bytes": 72371,
+    "sha256": "b76ac6e42b43f38b01fb354268512292bb48577c43fcb19bfaa89de6ffd701c4"
+  },
+  "exports/plan_basement_sweptpath.png": {
+    "bytes": 241917,
+    "sha256": "4add025b5de2a1785a959aca11706ce7ac069f9280a0cef02dbb90d940c9fa3b"
+  },
+  "exports/plan_basement_sweptpath.svg": {
+    "bytes": 191007,
+    "sha256": "549314dc92898bc6ddd0925d046c7aa4aa5b414bea275a4064961adcd01c3750"
+  },
+  "exports/plan_ground.png": {
+    "bytes": 215954,
+    "sha256": "e1b4bf94ad42ade5edd6a503f98818773d7d0b014ddf7b7945351de283324148"
+  },
+  "exports/plan_ground.svg": {
+    "bytes": 165061,
+    "sha256": "63915dd1cb9e4bec9caecd8fdfc3edbf02a793fbeb2445f69f1405dd84a4c01d"
+  },
+  "exports/plan_roof.png": {
+    "bytes": 168731,
+    "sha256": "2b31670fa7a247a96e4feb1ad616b261e0b5813a9ade9a5de9c29620fe89ce59"
+  },
+  "exports/plan_roof.svg": {
+    "bytes": 130029,
+    "sha256": "aa7b361228e5a7d3e5795662786607e877dcb49e750e7950be68a8c6b14ea553"
+  },
+  "exports/plan_roof_section.png": {
+    "bytes": 348019,
+    "sha256": "2ddc0804b254496d03e4d0962da2236880fac154a0156b2d9b3771ac776a40b9"
+  },
+  "exports/plan_roof_section.svg": {
+    "bytes": 211532,
+    "sha256": "e74f9bc2c716321d2be9f3cac862767c87b758e78328058343e5d0821fec15c4"
+  },
+  "exports/plan_typical.png": {
+    "bytes": 206643,
+    "sha256": "06b952a877200d0730d3b63b6deb2cdc0f7aba078456053429b09f093760a8f1"
+  },
+  "exports/plan_typical.svg": {
+    "bytes": 168023,
+    "sha256": "6c2b7282275199dd624e4248f8d971175aa08108e9424f5145f201fcabb149eb"
+  },
+  "exports/requirement_matrix.md": {
+    "bytes": 1261,
+    "sha256": "7c847c18bbe59ceaeceb1883805385cb48fb3742996d7bf455cf96f6b2b8aa96"
+  },
+  "exports/section_aa.png": {
+    "bytes": 159596,
+    "sha256": "c9d816f1aa7e32a7878a4bda560f413b11f209ada2e5b6827482b46215bdf694"
+  },
+  "exports/section_aa.svg": {
+    "bytes": 115337,
+    "sha256": "ac76edd8ae232720f47e7f8a2fa680ddafc8d9dd780d6323ccbb3bbdb064573f"
+  },
+  "exports/site_survey.png": {
+    "bytes": 153629,
+    "sha256": "5d8853156ec1533e05a88ea776a0b8430791562badec9a32ca8731346a18ee65"
+  },
+  "exports/site_survey.svg": {
+    "bytes": 84868,
+    "sha256": "4baf618b77b6ad2ba711a799763b4905b382d72c6d1877f5191486e3416fc684"
+  },
+  "exports/web_validation.json": {
+    "bytes": 429,
+    "sha256": "90966b30256b44b750c7b55fc58fc08dc93c2c017d23a6a1876aabfcb4a04a2a"
+  },
+  "final_boards/01-Plot83-NewCairo-All-4-Floor-Plans-A01.jpg": {
+    "bytes": 2637371,
+    "sha256": "3b4c998bfed00d2af71ccf509eff0a2d3520f22159d0484a733a39ce87e21497"
+  },
+  "final_boards/02-Passive-Section-Core-Study-ZeroWaste-A02.jpg": {
+    "bytes": 1819901,
+    "sha256": "5da86ec679e09379c0603f1dc26578176edd0c8f756ea4d76ebd40446c1f0e36"
+  },
+  "final_boards/03-Parametric-CAD-Floor-Plans-Set.jpg": {
+    "bytes": 1446811,
+    "sha256": "327f4635829a60b1d3df0c36e6873657fd83db233cbacc911a866de88f3e5eda"
+  },
+  "final_boards/04-Solar-Geometry-and-Core-Options.jpg": {
+    "bytes": 1174121,
+    "sha256": "108c4395fd621059a38219118c6bd0723af958d17c6b68c53bee3c751ac8a58f"
+  },
+  "final_boards/board1-claude.jpg": {
+    "bytes": 2637371,
+    "sha256": "3b4c998bfed00d2af71ccf509eff0a2d3520f22159d0484a733a39ce87e21497"
+  },
+  "final_boards/board1-codex.jpg": {
+    "bytes": 1446811,
+    "sha256": "327f4635829a60b1d3df0c36e6873657fd83db233cbacc911a866de88f3e5eda"
+  },
+  "final_boards/board2-claude.jpg": {
+    "bytes": 1819901,
+    "sha256": "5da86ec679e09379c0603f1dc26578176edd0c8f756ea4d76ebd40446c1f0e36"
+  },
+  "final_boards/board2-codex.jpg": {
+    "bytes": 1174121,
+    "sha256": "108c4395fd621059a38219118c6bd0723af958d17c6b68c53bee3c751ac8a58f"
+  },
+  "index.html": {
+    "bytes": 142095,
+    "sha256": "4c1738f923911c1fdd5688d01a801b3a42f589e2043a1663f8e13ba130d7afa5"
+  },
+  "render_delivery.py": {
+    "bytes": 8082,
+    "sha256": "5c56006f8cb8df9bb390b3ca9d011ba1da67aa547ff28a10510440e3c49b494d"
+  },
+  "verify_delivery.py": {
+    "bytes": 4216,
+    "sha256": "6c8f15e376cc1979443d044f73809f0a9b5bb4126a884048b07ec322a8aa2bc5"
+  }
+}

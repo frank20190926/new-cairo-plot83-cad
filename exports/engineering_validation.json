@@ -1,0 +1,565 @@
+{
+  "status": "PORTRAIT_ORIENTATION_CORRECTED_SCHEMATIC",
+  "construction_compliance": false,
+  "source": "brief_assets/.png, employer survey; current correction requirements",
+  "coordinate_system": {
+    "origin": "P3 SW",
+    "x": "east",
+    "y": "north",
+    "points_m": {
+      "P4": [
+        0,
+        25
+      ],
+      "P1": [
+        17,
+        25
+      ],
+      "P3": [
+        0,
+        0
+      ],
+      "P2": [
+        17,
+        0
+      ]
+    }
+  },
+  "parameters": {
+    "plot_w": 17.0,
+    "plot_d": 25.0,
+    "west_setback": 3.0,
+    "rear_setback": 6.0,
+    "road_w": 15.0,
+    "spine_w": 10.0,
+    "ground_ratio": 0.5,
+    "typical_ratio": 0.55,
+    "roof_ratio": 0.25,
+    "floor_depth": 17.0,
+    "ground_east_gap": 0.5,
+    "typical_east_gap": 0.25,
+    "rear_wall_y": 19.0,
+    "wall": 0.25,
+    "partition": 0.2,
+    "ramp_width": 3.0,
+    "ramp_grade": 0.2,
+    "basement_z": -3.2,
+    "ground_z": 0.45,
+    "storey": 3.3,
+    "roof_depth": 8.5,
+    "pool_w": 6.0,
+    "pool_d": 3.0,
+    "pool_shell": 0.2,
+    "pool_buffer": 1.5,
+    "pool_water_z": -2.0,
+    "pool_depth": 1.2,
+    "bay_w": 2.4,
+    "bay_d": 4.6,
+    "car_w": 1.8,
+    "car_l": 4.3,
+    "aisle": 6.0,
+    "inner_r": 3.2,
+    "outer_r": 5.8,
+    "family_area": 32.0,
+    "gym_area": 18.0,
+    "storage_area": 10.0,
+    "kitchenette_area": 8.0,
+    "reception_area": 58.0,
+    "kitchen_area": 18.0,
+    "latitude": 30.03
+  },
+  "geometry_checks": [
+    {
+      "check": "land_area",
+      "actual_m2": 425.0,
+      "expected_m2": 425,
+      "pass": true
+    },
+    {
+      "check": "ground_area",
+      "actual_m2": 212.5,
+      "expected_m2": 212.5,
+      "pass": true
+    },
+    {
+      "check": "typical_area",
+      "actual_m2": 233.75000000000003,
+      "expected_m2": 233.75,
+      "pass": true
+    },
+    {
+      "check": "roof_area",
+      "actual_m2": 106.25,
+      "expected_m2": 106.25,
+      "pass": true
+    },
+    {
+      "check": "room_reservations_no_overlap_or_court_intrusion",
+      "pass": true
+    },
+    {
+      "check": "portrait_north_up_17EW_25NS",
+      "pass": true
+    },
+    {
+      "check": "pool_outer_shell_and_both_1_50m_buffers",
+      "pass": true
+    },
+    {
+      "check": "six_bays_and_column_free_6m_aisle",
+      "pass": true
+    },
+    {
+      "check": "diagonal_P4_P2",
+      "actual_m": 30.23243291566195,
+      "display_m": 30.23,
+      "pass": true
+    }
+  ],
+  "rooms": [
+    {
+      "drawing": "plan_basement_sweptpath",
+      "id": "B-ELEC",
+      "name": "ELECTRIC",
+      "x": 3.25,
+      "y": 10.9,
+      "w": 4.35,
+      "h": 1.1,
+      "area": 4.785,
+      "target": null
+    },
+    {
+      "drawing": "plan_basement_sweptpath",
+      "id": "B-WATER",
+      "name": "WATER",
+      "x": 3.25,
+      "y": 12.2,
+      "w": 4.35,
+      "h": 1.1,
+      "area": 4.785,
+      "target": null
+    },
+    {
+      "drawing": "plan_basement_sweptpath",
+      "id": "B-WC1",
+      "name": "WC 1",
+      "x": 3.25,
+      "y": 7.9,
+      "w": 2.075,
+      "h": 1.8,
+      "area": 3.7350000000000003,
+      "target": null
+    },
+    {
+      "drawing": "plan_basement_sweptpath",
+      "id": "B-WC2",
+      "name": "WC 2",
+      "x": 5.525,
+      "y": 7.9,
+      "w": 2.075,
+      "h": 1.8,
+      "area": 3.7350000000000003,
+      "target": null
+    },
+    {
+      "drawing": "plan_basement_sweptpath",
+      "id": "B-STO",
+      "name": "STORAGE",
+      "x": 3.25,
+      "y": 13.5,
+      "w": 4.35,
+      "h": 1.1,
+      "area": 4.785,
+      "target": null
+    },
+    {
+      "drawing": "plan_basement_sweptpath",
+      "id": "B-KIT",
+      "name": "KITCHENETTE",
+      "x": 3.25,
+      "y": 14.8,
+      "w": 4.35,
+      "h": 1.6,
+      "area": 6.96,
+      "target": null
+    },
+    {
+      "drawing": "plan_basement_sweptpath",
+      "id": "B-GYM",
+      "name": "SMALL GYM",
+      "x": 3.25,
+      "y": 16.6,
+      "w": 4.35,
+      "h": 2.15,
+      "area": 9.3525,
+      "target": null
+    },
+    {
+      "drawing": "plan_basement_sweptpath",
+      "id": "B-FAM",
+      "name": "FAMILY SITTING",
+      "x": 9.55,
+      "y": 15.7,
+      "w": 7.2,
+      "h": 3.05,
+      "area": 21.96,
+      "target": null
+    },
+    {
+      "drawing": "plan_ground",
+      "id": "G-REC",
+      "name": "NORTH RECEPTION",
+      "x": 8.6,
+      "y": 2.25,
+      "w": 7.65,
+      "h": 5.25,
+      "area": 40.1625,
+      "target": null
+    },
+    {
+      "drawing": "plan_ground",
+      "id": "G-KIT",
+      "name": "KITCHEN",
+      "x": 3.75,
+      "y": 7.9,
+      "w": 3.5,
+      "h": 4.1,
+      "area": 14.349999999999998,
+      "target": null
+    },
+    {
+      "drawing": "plan_ground",
+      "id": "G-WC",
+      "name": "BATH",
+      "x": 3.75,
+      "y": 12.2,
+      "w": 2.25,
+      "h": 2.6,
+      "area": 5.8500000000000005,
+      "target": null
+    },
+    {
+      "drawing": "plan_ground",
+      "id": "G-STORE",
+      "name": "PANTRY",
+      "x": 3.75,
+      "y": 15.05,
+      "w": 2.25,
+      "h": 3.7,
+      "area": 8.325000000000001,
+      "target": null
+    },
+    {
+      "drawing": "plan_ground",
+      "id": "G-DINE",
+      "name": "DINING",
+      "x": 11.5,
+      "y": 7.75,
+      "w": 4.75,
+      "h": 7.05,
+      "area": 33.4875,
+      "target": null
+    },
+    {
+      "drawing": "plan_ground",
+      "id": "G-VER",
+      "name": "GARDEN VERANDA",
+      "x": 6.2,
+      "y": 15.05,
+      "w": 10.05,
+      "h": 3.7,
+      "area": 37.185,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-REC",
+      "name": "NORTH RECEPTION",
+      "x": 8.6,
+      "y": 1.6318181818181792,
+      "w": 7.9,
+      "h": 5.2181818181818205,
+      "area": 41.22363636363638,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-KIT",
+      "name": "KITCHEN",
+      "x": 3.25,
+      "y": 7.9,
+      "w": 4.0,
+      "h": 4.6,
+      "area": 18.4,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-WC1",
+      "name": "BATH 1",
+      "x": 3.25,
+      "y": 12.7,
+      "w": 2.25,
+      "h": 1.8,
+      "area": 4.05,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-WC2",
+      "name": "BATH 2",
+      "x": 3.25,
+      "y": 14.7,
+      "w": 2.25,
+      "h": 1.8,
+      "area": 4.05,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-WC3",
+      "name": "BATH 3",
+      "x": 3.25,
+      "y": 16.7,
+      "w": 2.25,
+      "h": 2.05,
+      "area": 4.6125,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-LAUN",
+      "name": "LAUNDRY",
+      "x": 5.7,
+      "y": 16.55,
+      "w": 1.55,
+      "h": 2.2,
+      "area": 3.4100000000000006,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-BED1",
+      "name": "BEDROOM 01",
+      "x": 11.5,
+      "y": 7.1,
+      "w": 5,
+      "h": 3.6,
+      "area": 18.0,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-BED2",
+      "name": "BEDROOM 02",
+      "x": 11.5,
+      "y": 10.9,
+      "w": 5,
+      "h": 3.6,
+      "area": 18.0,
+      "target": null
+    },
+    {
+      "drawing": "plan_typical",
+      "id": "T-BED3",
+      "name": "MASTER BEDROOM",
+      "x": 11.5,
+      "y": 14.7,
+      "w": 5,
+      "h": 4.05,
+      "area": 20.25,
+      "target": null
+    },
+    {
+      "drawing": "plan_roof",
+      "id": "R-GREY",
+      "name": "GREYWATER PLANT",
+      "x": 9.55,
+      "y": 1.75,
+      "w": 6.2,
+      "h": 2.8,
+      "area": 17.36,
+      "target": null
+    },
+    {
+      "drawing": "plan_roof",
+      "id": "R-WASTE",
+      "name": "SORTING ROOM",
+      "x": 9.55,
+      "y": 4.75,
+      "w": 6.2,
+      "h": 2.8,
+      "area": 17.36,
+      "target": null
+    },
+    {
+      "drawing": "plan_roof",
+      "id": "R-SERVICE",
+      "name": "SERVICE / PLANT",
+      "x": 3.75,
+      "y": 7.9,
+      "w": 12,
+      "h": 1.85,
+      "area": 22.200000000000003,
+      "target": null
+    }
+  ],
+  "dxf": {
+    "version": "AC1024",
+    "entities": 1392,
+    "layers": [
+      "SITE_BOUNDARY",
+      "WALLS",
+      "COLUMNS",
+      "DIMENSIONS",
+      "SWEPT_PATH",
+      "POOL_BUFFER",
+      "PASSIVE_WIND_SUN",
+      "TEXT",
+      "FURNITURE",
+      "LANDSCAPE",
+      "GLAZING",
+      "CORE",
+      "RAMP",
+      "ISSUES",
+      "AREA_BOUNDARY"
+    ],
+    "audit_errors": 0,
+    "audit_fixes": 0,
+    "drawing_index": [
+      {
+        "drawing": "plan_basement_sweptpath",
+        "offset_x_mm": 2800.0,
+        "offset_y_mm": 0,
+        "local_coordinates": "X east; Y north; P3=(0,0)",
+        "units": "mm"
+      },
+      {
+        "drawing": "plan_ground",
+        "offset_x_mm": 32800.0,
+        "offset_y_mm": 0,
+        "local_coordinates": "X east; Y north; P3=(0,0)",
+        "units": "mm"
+      },
+      {
+        "drawing": "plan_typical",
+        "offset_x_mm": 62800.0,
+        "offset_y_mm": 0,
+        "local_coordinates": "X east; Y north; P3=(0,0)",
+        "units": "mm"
+      },
+      {
+        "drawing": "plan_roof",
+        "offset_x_mm": 92800.0,
+        "offset_y_mm": 0,
+        "local_coordinates": "X east; Y north; P3=(0,0)",
+        "units": "mm"
+      },
+      {
+        "drawing": "section_aa",
+        "offset_x_mm": 122700.0,
+        "offset_y_mm": 0,
+        "local_coordinates": "diagram coordinates",
+        "units": "mm"
+      },
+      {
+        "drawing": "passive_sun_wind_diagram",
+        "offset_x_mm": 168000,
+        "offset_y_mm": 0,
+        "local_coordinates": "diagram coordinates",
+        "units": "mm"
+      },
+      {
+        "drawing": "core_options_comparison",
+        "offset_x_mm": 184500.0,
+        "offset_y_mm": 0,
+        "local_coordinates": "diagram coordinates",
+        "units": "mm"
+      },
+      {
+        "drawing": "site_survey",
+        "offset_x_mm": 208800.0,
+        "offset_y_mm": 0,
+        "local_coordinates": "X east; Y north; P3=(0,0)",
+        "units": "mm"
+      },
+      {
+        "drawing": "area_and_constraints",
+        "offset_x_mm": 236000,
+        "offset_y_mm": 0,
+        "local_coordinates": "diagram coordinates",
+        "units": "mm"
+      }
+    ]
+  },
+  "unresolved": [
+    {
+      "id": "H01",
+      "title": "RAMP CONNECTION / SWEPT PATH",
+      "short": "3.00 m west strip; 20% x 16.00 m nominal run. Transitions and garage link unresolved.",
+      "detail": "The west strip satisfies the requested plan width. Walls reduce usable clear width; local ramp slope limits, transitions, headroom and six-car entry/exit routes are not verified. Ri3.20/Ro5.80 arcs are geometric templates, not vehicle simulation."
+    },
+    {
+      "id": "H02",
+      "title": "SUNKEN POOL / RETAINING",
+      "short": "6 x 3 m outside shell; 1.50 m building buffer + 1.50 m south-fence clearance.",
+      "detail": "The 200 mm shell lies inside the pool footprint, leaving 5.60 x 2.60 m clear water. The buffer is lowered and retained to allow the basement overlook. Retaining, foundations, waterproofing, drainage, flood protection and guarding need engineering design."
+    },
+    {
+      "id": "H03",
+      "title": "AREA MEASUREMENT",
+      "short": "Ground221.00-8.50=212.50; typical242.25-8.50=233.75; roof106.25 m2.",
+      "detail": "Typical depth is exactly17.618181818m, rounded17.62m on dimensions. Open-sky court is2.50x3.40m. Coverage assumes the court is excluded; statutory counting and projections must be confirmed locally."
+    },
+    {
+      "id": "H04",
+      "title": "CORE / STRUCTURE / SERVICES",
+      "short": "Core B selected. Fire, egress, structure, lift and services remain schematic.",
+      "detail": "The clear 6m parking aisle contains no columns in this scheme. Structural spans, stacked core, ventilation, external openings and roof installations are not certified. No14% efficiency or energy-performance claim is made."
+    }
+  ],
+  "area_calculations": {
+    "ground": {
+      "outer_m2": 221,
+      "court_m2": 8.5,
+      "enclosed_m2": 212.5
+    },
+    "typical": {
+      "width_m": 13.75,
+      "depth_m": 17.61818181818182,
+      "outer_m2": 242.25,
+      "court_m2": 8.5,
+      "enclosed_m2": 233.75
+    },
+    "roof": {
+      "width_m": 12.5,
+      "depth_m": 8.5,
+      "enclosed_m2": 106.25
+    }
+  },
+  "pool": {
+    "dimension_basis": "outside structural shell",
+    "outer_m": [
+      6,
+      3
+    ],
+    "clear_water_m": [
+      5.6,
+      2.6
+    ],
+    "north_buffer_m": 1.5,
+    "south_fence_clearance_m": 1.5,
+    "garden_depth_m": 6
+  },
+  "swept_path": {
+    "method": "Annular geometric envelope, not kinematic vehicle simulation",
+    "r_inner_m": 3.2,
+    "r_outer_m": 5.8,
+    "six_vehicle_routes_verified": false,
+    "ramp_connection": "UNRESOLVED"
+  },
+  "solar": {
+    "latitude_assumed": 30.03
+  },
+  "room_measurement": "schematic clear rectangular reservations; areas computed from dimensions"
+}

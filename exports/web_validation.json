@@ -1,0 +1,34 @@
+[
+  {
+    "viewport": [
+      1440,
+      1000
+    ],
+    "documentWidth": 1440,
+    "tabs": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "keyboard": true,
+    "zoom": true,
+    "duplicateIds": 0
+  },
+  {
+    "viewport": [
+      500,
+      1000
+    ],
+    "documentWidth": 500,
+    "tabs": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "keyboard": true,
+    "zoom": true,
+    "duplicateIds": 0
+  }
+]
